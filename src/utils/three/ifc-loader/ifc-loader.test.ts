@@ -7,7 +7,7 @@ import { loadIfcModel } from './ifc-loader'
 
 describe('load-ifc', () => {
 	it('should load the file', async () => {
-		const url = path.resolve('public/test/', 'castle.ifc')
+		const url = path.resolve('@public/test/', 'castle.ifc')
 
 		let ifcBuffer: Uint8Array = new Uint8Array(0)
 

@@ -1,3 +1,10 @@
 import './global.css'
 
+export * from './3d-components/grid'
+export * from './classes'
+export * from './components/ifc-controls'
+export * from './components/ifc-overlay'
 export * from './components/ifc-viewer'
+export * from './errors'
+export * from './hooks/use-ifc-viewer-commands'
+export * from './types/types'

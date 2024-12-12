@@ -37,7 +37,7 @@ jobs:
                   version: 9
                   run_install: true
             - name: Build Storybook
-              run: pnpm run build
+              run: pnpm run build:storybook
             - name: Setup Pages
               uses: actions/configure-pages@v4
             - name: Upload artifact
