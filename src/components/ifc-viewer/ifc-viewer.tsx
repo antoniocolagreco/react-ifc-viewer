@@ -1,0 +1,833 @@
+'use client'
+
+import { Grid } from '@/3d-components/grid'
+import type IfcElement from '@/classes/ifc-element'
+import IfcMesh from '@/classes/ifc-mesh'
+import IfcModel from '@/classes/ifc-model'
+import { IFCViewerLoadingMessages } from '@/costants/ifc-viewer-messages'
+import useGlobalState from '@/hooks/use-global-state'
+import { fetchFile } from '@/utils/fetch-file'
+import { filterIfcElementsByPropertiesAndType, processIfcData } from '@/utils/ifc/properties-utils'
+import { restoreData } from '@/utils/ifc/save-utils/save-utils'
+import { isFragment, isIfcMarker } from '@/utils/react-utils/react-utils'
+import alignObject from '@/utils/three/align-object/align-object'
+import { createBoundingSphere, createSphereMesh, fitBoundingSphere } from '@/utils/three/camera-utils'
+import { disposeObjects } from '@/utils/three/dispose-utils'
+import { loadIfcModel, loadIfcProperties } from '@/utils/three/ifc-loader'
+import { getGroupPosition } from '@/utils/three/meshes-utils'
+import {
+	setElementToHidden,
+	setElementToHoveredMaterial,
+	setElementToOriginalMaterial,
+	setElementToSelectedMaterial,
+	setElementToTransparentMaterial,
+	transformViewportPositionToScreenPosition,
+} from '@/utils/viewer-utils/viewer-utils'
+import clsx from 'clsx'
+import {
+	Children,
+	forwardRef,
+	useCallback,
+	useEffect,
+	useRef,
+	useState,
+	type CSSProperties,
+	type HTMLAttributes,
+	type MouseEvent,
+	type ReactElement,
+	type ReactNode,
+} from 'react'
+import type {
+	IfcElementData,
+	IfcMarkerLink,
+	LambertMesh,
+	LinkRequirements,
+	Property,
+	Requirements,
+	SelectableRequirements,
+} from 'src/types/types'
+import {
+	AmbientLight,
+	DirectionalLight,
+	PerspectiveCamera,
+	Raycaster,
+	Scene,
+	Vector2,
+	WebGLRenderer,
+	type Intersection,
+	type Sphere,
+} from 'three'
+import { OrbitControls } from 'three/examples/jsm/Addons.js'
+import { IfcAnchor, type IfcAnchorProps } from '../ifc-anchor'
+import { type IfcOverlayProps } from '../ifc-overlay'
+import { ProgressBar } from '../progress-bar'
+import './ifc-viewer.css'
+import type { LoadingStatus, MouseState, On3DModelLoadedType, ViewMode } from './types'
+
+const LAYER_MESHES = 0
+const LAYER_HELPERS = 29
+
+type IfcViewerProps = HTMLAttributes<HTMLDivElement> & {
+	url: string
+	data?: IfcElementData[]
+
+	hoverColor?: number
+	selectedColor?: number
+
+	onLoad?: On3DModelLoadedType
+
+	links?: LinkRequirements[]
+	selectable?: SelectableRequirements[]
+	alwaysVisible?: Requirements[]
+	anchors?: Requirements[]
+
+	highlightedSelectables?: SelectableRequirements[]
+
+	onMeshSelect?: (ifcElement?: IfcElement) => void
+	onMeshHover?: (ifcElement?: IfcElement) => void
+
+	showBoundingSphere?: boolean
+	enableMeshSelection?: boolean
+	enableMeshHover?: boolean
+}
+
+const IfcViewer = forwardRef<HTMLDivElement, IfcViewerProps>((props, ref) => {
+	const {
+		url,
+		data,
+
+		hoverColor = 0x00498a,
+		selectedColor = 0x16a34a,
+
+		onLoad,
+
+		links: linksRequirements,
+		selectable: selectableRequirements,
+		alwaysVisible: alwaysVisibleRequirements,
+
+		onMeshHover,
+		onMeshSelect,
+
+		enableMeshHover = false,
+		enableMeshSelection = false,
+		showBoundingSphere = false,
+
+		className,
+		children,
+
+		...otherProps
+	} = props
+
+	const containerRef = useRef<HTMLDivElement>(null)
+	const canvasRef = useRef<HTMLCanvasElement>(null)
+
+	const rendererRef = useRef<WebGLRenderer>()
+	const cameraRef = useRef<PerspectiveCamera>()
+	const controlsRef = useRef<OrbitControls>()
+
+	const animationFrameIdRef = useRef<number>()
+
+	const sceneRef = useRef<Scene>(new Scene())
+	const modelRef = useRef<IfcModel>(new IfcModel())
+	const rayCasterRef = useRef<Raycaster>(new Raycaster())
+
+	const pointerRef = useRef<Vector2>(new Vector2())
+
+	const boundingSphereRef = useRef<Sphere>()
+	const boundingSphereMeshRef = useRef<LambertMesh>()
+
+	const selectedifcElementRef = useRef<IfcElement>()
+	const previousSelectedifcElementRef = useRef<IfcElement>()
+	const hoveredifcElementRef = useRef<IfcElement>()
+	const previousHoveredifcElementRef = useRef<IfcElement>()
+
+	const selectableIntersectionsRef = useRef<Intersection<IfcMesh>[]>([])
+	const mouseStatusRef = useRef<MouseState>({ clicked: false, x: 0, y: 0 })
+
+	const resizeObserverRef = useRef<ResizeObserver>()
+
+	const renderingEnabledRef = useRef(false)
+	const renderingTimeoutRef = useRef<ReturnType<typeof setTimeout>>()
+
+	const viewModeRef = useRef<ViewMode>('VIEW_MODE_ALL')
+
+	const ifcMarkerLinksRef = useRef<IfcMarkerLink[]>([])
+	const [ifcAnchors, setIfcAnchors] = useState<ReactElement<IfcAnchorProps>[]>()
+	const [ifcViewerChildren, setIfcViewerChildren] = useState<ReactNode[]>()
+
+	const { setGlobalState } = useGlobalState()
+
+	const [cursorStyle, setCursorStyle] = useState<CSSProperties>({ cursor: 'default' })
+
+	const [loadingProgress, setLoadingProgress] = useState<LoadingStatus>({
+		status: 'NOT_INITIALIZED',
+		loaded: 0,
+		total: 0,
+	})
+
+	useEffect(() => {
+		if (ref) {
+			if (typeof ref === 'function') {
+				ref(containerRef.current)
+			} else {
+				ref.current = containerRef.current
+			}
+		}
+	}, [ref])
+
+	const processIfcMarker = useCallback((ifcMarkerElement: ReactElement<IfcOverlayProps>): IfcMarkerLink[] => {
+		const newMarkerLinks: IfcMarkerLink[] = []
+		const content = ifcMarkerElement.props.children
+		const markerRequirements = ifcMarkerElement.props.requirements
+
+		const ifcElements = filterIfcElementsByPropertiesAndType(
+			modelRef.current,
+			markerRequirements.requiredProperties,
+			markerRequirements.requiredType,
+		)
+
+		for (const element of ifcElements) {
+			newMarkerLinks.push({ element: element, content })
+		}
+		return newMarkerLinks
+	}, [])
+
+	const processChildren = useCallback(() => {
+		const newMarkerLinks: IfcMarkerLink[] = []
+		const newChildren: ReactNode[] = []
+
+		const childrenStack = Children.toArray(children)
+
+		while (childrenStack.length > 0) {
+			const child = childrenStack.pop()
+
+			if (!child) continue
+
+			if (isFragment(child)) {
+				childrenStack.push(...Children.toArray(child.props.children))
+			} else if (isIfcMarker(child)) {
+				newMarkerLinks.push(...processIfcMarker(child))
+			} else {
+				newChildren.push(child)
+			}
+		}
+
+		ifcMarkerLinksRef.current = newMarkerLinks
+		setIfcViewerChildren(newChildren)
+	}, [children, processIfcMarker])
+
+	const updateAnchors = useCallback(() => {
+		if (!cameraRef.current || !rendererRef.current) {
+			return
+		}
+		const newAnchors: ReactElement<IfcAnchorProps>[] = []
+		const ifcMarkerLinks = ifcMarkerLinksRef.current
+
+		for (const ifcMarkerLink of ifcMarkerLinks) {
+			const { element, content } = ifcMarkerLink
+			const ifcElement3dPosition = getGroupPosition(element)
+			const position = transformViewportPositionToScreenPosition(
+				cameraRef.current,
+				rendererRef.current,
+				ifcElement3dPosition,
+			)
+
+			newAnchors.push(
+				<IfcAnchor key={ifcMarkerLinks.indexOf(ifcMarkerLink)} position={position}>
+					{content}
+				</IfcAnchor>,
+			)
+		}
+		setIfcAnchors(newAnchors)
+	}, [])
+
+	const renderScene = useCallback((): void => {
+		if (!containerRef.current || !rendererRef.current || !cameraRef.current || !controlsRef.current) {
+			return
+		}
+
+		const width = containerRef.current.clientWidth
+		const height = containerRef.current.clientHeight
+		cameraRef.current.aspect = width / height
+		cameraRef.current.updateProjectionMatrix()
+		rendererRef.current.setSize(width, height)
+		controlsRef.current.update()
+		rendererRef.current.render(sceneRef.current, cameraRef.current)
+
+		updateAnchors()
+	}, [updateAnchors])
+
+	useEffect(() => {
+		if (loadingProgress.status === 'READY') {
+			processChildren()
+			renderScene()
+		}
+	}, [loadingProgress.status, processChildren, renderScene])
+
+	const resetScene = (): void => {
+		disposeObjects(sceneRef.current)
+		sceneRef.current.children.length = 0
+
+		const ambientLight = new AmbientLight(0xffffff, 0.5)
+		sceneRef.current.add(ambientLight)
+
+		const directionalLight = new DirectionalLight(0xffffff, 1.5)
+		directionalLight.position.set(5, 10, 3)
+		sceneRef.current.add(directionalLight)
+
+		const grid = new Grid()
+		grid.position.y = -0.3
+		grid.layers.set(LAYER_HELPERS)
+		sceneRef.current.add(grid)
+	}
+
+	const updateBoundingSphere = useCallback((): void => {
+		const meshes: IfcMesh[] = selectedifcElementRef.current?.children ?? modelRef.current.getAllMeshes()
+
+		boundingSphereRef.current = createBoundingSphere(meshes)
+
+		if (!showBoundingSphere) return
+
+		if (boundingSphereMeshRef.current) {
+			sceneRef.current.remove(boundingSphereMeshRef.current)
+		}
+		const sphereMesh = createSphereMesh(boundingSphereRef.current)
+		sphereMesh.layers.set(LAYER_HELPERS)
+		boundingSphereMeshRef.current = sphereMesh
+		sceneRef.current.add(boundingSphereMeshRef.current)
+	}, [showBoundingSphere])
+
+	const updateMeshDisplay = useCallback(
+		(ifcElement: IfcElement) => {
+			if (ifcElement === selectedifcElementRef.current) {
+				setElementToSelectedMaterial(ifcElement, modelRef.current, selectedColor)
+			} else if (ifcElement === hoveredifcElementRef.current) {
+				setElementToHoveredMaterial(ifcElement, modelRef.current, hoverColor)
+			} else {
+				switch (viewModeRef.current) {
+					case 'VIEW_MODE_ALL': {
+						setElementToOriginalMaterial(ifcElement, modelRef.current)
+						break
+					}
+					case 'VIEW_MODE_TRANSPARENT': {
+						if (ifcElement.userData.alwaysVisible) {
+							setElementToOriginalMaterial(ifcElement, modelRef.current)
+						} else {
+							setElementToTransparentMaterial(ifcElement, modelRef.current)
+						}
+						break
+					}
+					case 'VIEW_MODE_SELECTABLE': {
+						if (ifcElement.userData.alwaysVisible) {
+							setElementToOriginalMaterial(ifcElement, modelRef.current)
+						} else {
+							setElementToHidden(ifcElement)
+						}
+						break
+					}
+				}
+			}
+		},
+		[hoverColor, selectedColor],
+	)
+
+	const updateAllMeshesDisplay = useCallback(() => {
+		for (const ifcElement of modelRef.current.children) {
+			updateMeshDisplay(ifcElement)
+		}
+	}, [updateMeshDisplay])
+
+	const switchSelectedMesh = useCallback(() => {
+		if (previousSelectedifcElementRef.current) {
+			updateMeshDisplay(previousSelectedifcElementRef.current)
+		}
+		if (selectedifcElementRef.current) {
+			updateMeshDisplay(selectedifcElementRef.current)
+		}
+	}, [updateMeshDisplay])
+
+	const switchHoveredMesh = useCallback(() => {
+		if (previousHoveredifcElementRef.current) {
+			updateMeshDisplay(previousHoveredifcElementRef.current)
+		}
+		if (hoveredifcElementRef.current) {
+			updateMeshDisplay(hoveredifcElementRef.current)
+		}
+	}, [updateMeshDisplay])
+
+	const select = useCallback(
+		(ifcElement?: IfcElement): void => {
+			previousSelectedifcElementRef.current = selectedifcElementRef.current
+			selectedifcElementRef.current = ifcElement
+			updateBoundingSphere()
+			switchSelectedMesh()
+			renderScene()
+
+			console.log(
+				'IfcViewer | selectedifcElementRef.current:',
+				selectedifcElementRef.current?.userData.name,
+				selectedifcElementRef.current?.userData.type,
+				selectedifcElementRef.current?.userData.properties,
+			)
+
+			if (onMeshSelect) {
+				onMeshSelect(ifcElement)
+			}
+		},
+		[onMeshSelect, updateBoundingSphere, switchSelectedMesh, renderScene],
+	)
+
+	const hover = useCallback(
+		(ifcElement?: IfcElement): void => {
+			previousHoveredifcElementRef.current = hoveredifcElementRef.current
+			hoveredifcElementRef.current = ifcElement
+
+			switchHoveredMesh()
+			renderScene()
+
+			if (hoveredifcElementRef.current) {
+				setCursorStyle({ cursor: 'pointer' })
+				return
+			}
+			setCursorStyle({ cursor: 'default' })
+
+			if (onMeshHover) {
+				onMeshHover(ifcElement)
+			}
+		},
+		[onMeshHover, switchHoveredMesh, renderScene],
+	)
+
+	const updateMousePointer = (event: MouseEvent): void => {
+		if (!canvasRef.current) throw new Error('Canvas not loaded')
+		const rect = canvasRef.current.getBoundingClientRect()
+
+		const mouseX = event.clientX - rect.left
+		const mouseY = event.clientY - rect.top
+
+		pointerRef.current.x = (mouseX / canvasRef.current.clientWidth) * 2 - 1
+		pointerRef.current.y = -(mouseY / canvasRef.current.clientHeight) * 2 + 1
+	}
+
+	const updateIntersections = (): void => {
+		if (!cameraRef.current) {
+			throw new Error('Camera not found')
+		}
+		rayCasterRef.current.setFromCamera(pointerRef.current, cameraRef.current)
+		const allIntersections = rayCasterRef.current.intersectObjects(sceneRef.current.children)
+
+		const selectableIfcMeshes = allIntersections.filter(intersection => {
+			if (intersection.object instanceof IfcMesh) {
+				return intersection.object.parent.userData.selectable
+			}
+			return false
+		}) as Intersection<IfcMesh>[]
+
+		selectableIntersectionsRef.current = selectableIfcMeshes
+	}
+
+	const handleMouseLeave = useCallback((): void => {
+		hover()
+	}, [hover])
+
+	const handleMouseDown = useCallback((event: MouseEvent<HTMLCanvasElement>): void => {
+		mouseStatusRef.current = { clicked: true, x: event.clientX, y: event.clientY }
+		renderingEnabledRef.current = true
+	}, [])
+
+	const handleMouseUp = useCallback(
+		(event: MouseEvent<HTMLCanvasElement>): void => {
+			renderingEnabledRef.current = false
+			if (!mouseStatusRef.current.clicked) return
+			const currentX = event.clientX
+			const currentY = event.clientY
+
+			if (
+				Math.abs(currentX - mouseStatusRef.current.x) > 8 ||
+				Math.abs(currentY - mouseStatusRef.current.y) > 8
+			) {
+				mouseStatusRef.current = { clicked: false, x: 0, y: 0 }
+				return
+			}
+
+			if (!enableMeshSelection) return
+
+			updateMousePointer(event)
+			updateIntersections()
+
+			// Check if there are intersections
+			if (selectableIntersectionsRef.current.length === 0) {
+				select()
+				return
+			}
+
+			const firstIntersectedMesh = selectableIntersectionsRef.current.at(0)?.object
+			const ifcElement = firstIntersectedMesh?.getifcElement()
+
+			if (selectableRequirements && selectableRequirements.length > 0 && !ifcElement?.isSelectable()) {
+				select()
+				return
+			}
+
+			select(ifcElement)
+			renderScene()
+		},
+		[enableMeshSelection, select, selectableRequirements, renderScene],
+	)
+
+	const handleMouseMove = useCallback(
+		(event: MouseEvent<HTMLCanvasElement>): void => {
+			renderingEnabledRef.current = true
+			if (renderingTimeoutRef.current) {
+				clearTimeout(renderingTimeoutRef.current)
+			}
+			renderingTimeoutRef.current = setTimeout(() => {
+				renderingEnabledRef.current = false
+			}, 1000)
+
+			if (!enableMeshHover) return
+			updateMousePointer(event)
+			updateIntersections()
+			const firstIntersectedMesh = selectableIntersectionsRef.current.at(0)?.object
+			const ifcElement = firstIntersectedMesh?.getifcElement()
+
+			if (selectableRequirements && selectableRequirements.length > 0 && !ifcElement?.isSelectable()) {
+				hover()
+				return
+			}
+
+			hover(ifcElement)
+		},
+		[enableMeshHover, hover, selectableRequirements],
+	)
+
+	const fitView = useCallback((): void => {
+		if (!boundingSphereRef.current) return
+		if (!cameraRef.current) {
+			throw new Error('Camera not found')
+		}
+		if (!controlsRef.current) {
+			throw new Error('Controls not found')
+		}
+		fitBoundingSphere(boundingSphereRef.current, cameraRef.current, controlsRef.current)
+		renderScene()
+	}, [renderScene])
+
+	const focusView = useCallback((): void => {
+		if (!boundingSphereRef.current) return
+		if (!controlsRef.current) {
+			throw new Error('Controls not found')
+		}
+		controlsRef.current.target.copy(boundingSphereRef.current.center)
+		renderScene()
+	}, [renderScene])
+
+	const resetView = useCallback(() => {
+		if (!cameraRef.current || !controlsRef.current) {
+			return
+		}
+		cameraRef.current.position.set(10, 20, 20)
+		select()
+		updateBoundingSphere()
+		if (boundingSphereRef.current) {
+			fitBoundingSphere(boundingSphereRef.current, cameraRef.current, controlsRef.current)
+		}
+		renderScene()
+	}, [select, updateBoundingSphere, renderScene])
+
+	const selectByExpressId = useCallback(
+		(expressId: number | undefined): void => {
+			if (!expressId) {
+				select()
+				return undefined
+			}
+			const ifcElement = modelRef.current.getIfcElement(expressId)
+			select(ifcElement)
+		},
+		[select],
+	)
+
+	const selectByProperty = useCallback(
+		(property: Property | undefined): IfcElement | undefined => {
+			if (!property) {
+				select()
+				return undefined
+			}
+
+			const foundElements = filterIfcElementsByPropertiesAndType(modelRef.current, [property])
+
+			if (foundElements.length === 0) return undefined
+			const foundElement = foundElements[0]
+
+			select(foundElement)
+			fitView()
+
+			return foundElement
+		},
+		[fitView, select],
+	)
+
+	const changeViewMode = useCallback(
+		(mode?: ViewMode) => {
+			if (mode) {
+				viewModeRef.current = mode
+			} else {
+				switch (viewModeRef.current) {
+					case 'VIEW_MODE_SELECTABLE': {
+						viewModeRef.current = 'VIEW_MODE_ALL'
+						break
+					}
+					case 'VIEW_MODE_ALL': {
+						viewModeRef.current = 'VIEW_MODE_TRANSPARENT'
+						break
+					}
+					case 'VIEW_MODE_TRANSPARENT': {
+						viewModeRef.current = 'VIEW_MODE_SELECTABLE'
+						break
+					}
+				}
+			}
+			updateAllMeshesDisplay()
+			renderScene()
+		},
+		[updateAllMeshesDisplay, renderScene],
+	)
+
+	const init = useCallback(() => {
+		if (!canvasRef.current) {
+			throw new Error('Canvas not found')
+		}
+		const canvas = canvasRef.current
+		// Renderer
+		rendererRef.current = new WebGLRenderer({
+			canvas: canvasRef.current,
+			antialias: true,
+			alpha: true,
+		})
+		const renderer = rendererRef.current
+		renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+		renderer.setSize(canvas.clientWidth, canvas.clientHeight)
+		renderer.setClearColor(0x000000, 0)
+		// Camera
+		cameraRef.current = new PerspectiveCamera()
+		const camera = cameraRef.current
+		camera.fov = 45
+		camera.aspect = canvasRef.current.clientWidth / canvas.clientHeight
+		camera.near = 0.1
+		camera.far = 5000
+		camera.position.set(10, 20, 20)
+		camera.updateProjectionMatrix()
+		camera.layers.set(LAYER_MESHES)
+		camera.layers.enable(LAYER_HELPERS)
+		cameraRef.current = camera
+		sceneRef.current.add(camera)
+		// Controls
+		controlsRef.current = new OrbitControls(cameraRef.current, rendererRef.current.domElement)
+		const controls = controlsRef.current
+		controls.enableDamping = true
+		controls.maxPolarAngle = Math.PI / 2
+		// Raycaster
+		rayCasterRef.current.layers.set(LAYER_MESHES)
+
+		if (!containerRef.current) {
+			throw new Error('Container not found')
+		}
+
+		resizeObserverRef.current = new ResizeObserver(() => {
+			renderScene()
+		})
+		resizeObserverRef.current.observe(containerRef.current)
+
+		resetScene()
+
+		const animate = (): void => {
+			if (renderingEnabledRef.current) {
+				renderScene()
+			}
+			animationFrameIdRef.current = requestAnimationFrame(animate)
+		}
+		animate()
+
+		setLoadingProgress({ status: 'READY', loaded: 1, total: 1 })
+	}, [renderScene])
+
+	const unloadEverything = useCallback((): void => {
+		disposeObjects(sceneRef.current)
+		if (animationFrameIdRef.current) {
+			cancelAnimationFrame(animationFrameIdRef.current)
+		}
+		rendererRef.current?.dispose()
+	}, [])
+
+	const loadFile = useCallback(async (): Promise<void> => {
+		resetScene()
+
+		let ifcBuffer: Uint8Array = new Uint8Array()
+		setLoadingProgress({ status: 'NOT_INITIALIZED' })
+
+		await fetchFile(
+			url,
+			buffer => {
+				ifcBuffer = buffer
+			},
+			progress => {
+				setLoadingProgress({ status: 'FETCHING_PROGRESS', loaded: progress.loaded, total: progress.total })
+			},
+			error => {
+				setLoadingProgress({ status: 'FETCHING_ERROR' })
+				throw error
+			},
+		)
+
+		setLoadingProgress({ status: 'LOADING_MESHES_PROGRESS' })
+
+		await loadIfcModel(
+			ifcBuffer,
+			model => {
+				modelRef.current = model
+				sceneRef.current.add(model)
+
+				alignObject(modelRef.current, { x: 'center', y: 'bottom', z: 'center' })
+
+				sceneRef.current.updateMatrix()
+				sceneRef.current.updateMatrixWorld(true)
+
+				updateBoundingSphere()
+
+				if (!cameraRef.current) {
+					throw new Error('Camera not found')
+				}
+				if (!controlsRef.current) {
+					throw new Error('Controls not found')
+				}
+
+				if (boundingSphereRef.current) {
+					fitBoundingSphere(boundingSphereRef.current, cameraRef.current, controlsRef.current)
+				}
+
+				renderScene()
+			},
+			error => {
+				setLoadingProgress({ status: 'LOADING_MESHES_ERROR' })
+				throw error
+			},
+		)
+
+		let ifcModelItemsData: IfcElementData[] = []
+
+		if (data) {
+			ifcModelItemsData = data
+		} else {
+			await loadIfcProperties(
+				ifcBuffer,
+				data => {
+					ifcModelItemsData = data
+				},
+				progress => {
+					setLoadingProgress({
+						status: 'LOADING_PROPERTIES_PROGRESS',
+						loaded: progress.loaded,
+						total: progress.total,
+					})
+				},
+				error => {
+					setLoadingProgress({ status: 'LOADING_PROPERTIES_ERROR' })
+					throw error
+				},
+			)
+
+			const total = ifcModelItemsData.length
+			for (let index = 0; index < total; index++) {
+				const ifcElementData = ifcModelItemsData[index]
+
+				if (!ifcElementData) {
+					throw new Error('ifcElement not found')
+				}
+
+				processIfcData(
+					ifcElementData,
+					ifcModelItemsData,
+					linksRequirements,
+					selectableRequirements,
+					alwaysVisibleRequirements,
+				)
+
+				setLoadingProgress({ status: 'PROCESSING_PROGRESS', loaded: index, total })
+			}
+		}
+
+		setLoadingProgress({ status: 'RESTORING_DATA_PROGRESS' })
+		restoreData(modelRef.current, ifcModelItemsData)
+
+		if (onLoad) {
+			onLoad({
+				model: modelRef.current,
+				selectableItems: modelRef.current.children.filter(ifcElement => ifcElement.userData.selectable),
+				selectByExpressId,
+				selectByProperty,
+			})
+		}
+
+		setLoadingProgress({ status: 'READY' })
+	}, [
+		alwaysVisibleRequirements,
+		data,
+		linksRequirements,
+		onLoad,
+		selectByExpressId,
+		selectByProperty,
+		selectableRequirements,
+		updateBoundingSphere,
+		url,
+		renderScene,
+	])
+
+	useEffect(() => {
+		init()
+		void loadFile()
+
+		setGlobalState({
+			commands: {
+				focusView,
+				fitView,
+				resetView,
+				changeViewMode,
+			},
+		})
+
+		return () => {
+			unloadEverything()
+			resizeObserverRef.current?.disconnect()
+		}
+	}, [changeViewMode, fitView, focusView, init, loadFile, resetView, setGlobalState, unloadEverything])
+
+	return (
+		<div className={clsx('ifc-viewer', className)} ref={containerRef} {...otherProps}>
+			<canvas
+				ref={canvasRef}
+				onMouseDown={handleMouseDown}
+				onMouseUp={handleMouseUp}
+				onMouseMove={handleMouseMove}
+				onMouseLeave={handleMouseLeave}
+				style={cursorStyle}
+			/>
+			{ifcAnchors}
+			<div className="ifc-children-container">{ifcViewerChildren}</div>
+			{loadingProgress.status !== 'READY' && (
+				<div className="ifc-progress-bar-container">
+					<ProgressBar
+						max={loadingProgress.total ?? 1}
+						value={loadingProgress.loaded ?? 1}
+						state={loadingProgress.status.toUpperCase().includes('ERROR') ? 'ERROR' : 'LOADING'}
+					>
+						{IFCViewerLoadingMessages[loadingProgress.status]}
+					</ProgressBar>
+				</div>
+			)}
+		</div>
+	)
+})
+
+IfcViewer.displayName = 'IfcViewer'
+
+export { IfcViewer, type IfcViewerProps }

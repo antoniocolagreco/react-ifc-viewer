@@ -1,0 +1,28 @@
+.ifc-viewer .marker {
+	position: absolute;
+	width: 32px;
+	height: 32px;
+	display: flex;
+	place-content: center;
+	border-width: 2px;
+	border-radius: 4px;
+	background-color: transparent;
+	border-color: #737373;
+	border-style: solid;
+
+	&.blue {
+		border-color: var(--blue-highlight-color);
+	}
+
+	&.green {
+		border-color: var(--green-highlight-color);
+	}
+
+	&.yellow {
+		border-color: var(--yellow-highlight-color);
+	}
+
+	&.red {
+		border-color: var(--red-highlight-color);
+	}
+}

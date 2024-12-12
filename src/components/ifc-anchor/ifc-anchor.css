@@ -1,0 +1,10 @@
+.ifc-viewer {
+	& .ifc-anchor {
+		position: absolute;
+
+		& > * {
+			position: absolute;
+			transform: translate(-50%, -50%);
+		}
+	}
+}

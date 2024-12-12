@@ -1,0 +1,55 @@
+.ifc-viewer {
+	& .progress-bar {
+		height: 24px;
+		pointer-events: none;
+		position: relative;
+		display: flex;
+		flex-direction: column-reverse;
+		overflow: hidden;
+		border-radius: 9999px;
+		width: 100%;
+		background-color: var(--gray-light-color);
+
+		& .message {
+			position: absolute;
+			inset: 0;
+			display: flex;
+			flex-direction: column;
+			place-content: center;
+			font-size: 12px;
+			font-weight: 600;
+			text-transform: uppercase;
+			text-align: center;
+			min-width: 100%;
+			color: var(--white-color);
+		}
+	}
+
+	& .bar {
+		position: relative;
+		pointer-events: none;
+		display: flex;
+		flex-direction: column;
+		justify-content: center;
+		overflow: hidden;
+		white-space: nowrap;
+		border-radius: 9999px;
+		font-size: 12px;
+		color: white;
+		transition: all 0.075s;
+		width: 100%;
+		height: 100%;
+
+		&.loading {
+			background-color: var(--blue-color);
+		}
+
+		&.done {
+			background-color: var(--green-color);
+		}
+
+		&.error {
+			background-color: var(--red-color);
+		}
+	}
+}
