@@ -37,6 +37,8 @@ jobs:
                   version: 9
                   run_install: true
             - name: Build Storybook
+              env:
+                  BASE_URL: '/react-ifc-viewer'
               run: pnpm run build:storybook
             - name: Setup Pages
               uses: actions/configure-pages@v4

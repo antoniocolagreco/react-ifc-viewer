@@ -2,7 +2,6 @@ import IfcModel from '@/classes/ifc-model'
 import { IfcProgressEvent } from '@/classes/ifc-progress-event'
 import type { IfcElementData } from '@/types/types'
 import { getIfcElementTypeAndProperties } from '@/utils/ifc/properties-utils'
-import { isRunningInBrowser } from '@/utils/utils'
 import { IfcAPI, LogLevel } from 'web-ifc'
 import { buildifcElement } from '../meshes-utils/meshes-utils'
 
@@ -20,7 +19,7 @@ const loadIfcModel: LoadIfcFunctionType = async (ifcBuffer, onLoad, onError) => 
 
 	try {
 		const wasmPath = {
-			path: isRunningInBrowser() ? `${location.origin}/wasm/` : 'public/wasm/',
+			path: `${location.origin}${import.meta.env.BASE_URL}wasm/`,
 			absolute: true,
 		}
 
@@ -60,7 +59,7 @@ const loadIfcProperties: LoadIfcDataType = async (ifcBuffer: Uint8Array, onLoad,
 
 	try {
 		const wasmPath = {
-			path: isRunningInBrowser() ? `${location.origin}/wasm/` : 'public/wasm/',
+			path: `${location.origin}${import.meta.env.BASE_URL}wasm/`,
 			absolute: true,
 		}
 

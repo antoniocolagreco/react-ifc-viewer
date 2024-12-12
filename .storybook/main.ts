@@ -13,6 +13,7 @@ const config: StorybookConfig = {
 	},
 	viteFinal: async config => ({
 		...config,
+		base: process.env['VITE_BASE_URL'],
 		plugins: await withoutVitePlugins(config.plugins, ['vite:dts']), // skip dts plugin
 	}),
 }

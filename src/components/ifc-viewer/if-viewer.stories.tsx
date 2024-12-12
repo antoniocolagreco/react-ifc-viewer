@@ -17,7 +17,7 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 const defaultProps: IfcViewerProps = {
-	url: '/test/castle.ifc',
+	url: `${location.origin}${import.meta.env.BASE_URL}/test/castle.ifc`,
 	enableMeshHover: true,
 	enableMeshSelection: true,
 	style: { minHeight: '480px' },

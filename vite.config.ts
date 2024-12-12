@@ -5,9 +5,10 @@ import dts from 'vite-plugin-dts'
 import { defineConfig as testDefineConfig } from 'vitest/config'
 import { peerDependencies } from './package.json'
 
-const base = process.env['VITE_BASE_PATH'] || '/'
+const base = process.env['BASE_URL'] ?? '/'
 
 const basicConfig = defineConfig({
+	base,
 	plugins: [
 		react(),
 		dts({ rollupTypes: true }), // Output .d.ts files
@@ -31,7 +32,6 @@ const basicConfig = defineConfig({
 			external: ['react/jsx-runtime', ...Object.keys(peerDependencies)],
 		},
 	},
-	base,
 })
 
 const testConfig = testDefineConfig({
