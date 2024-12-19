@@ -25,4 +25,4 @@ const useGlobalState: UseGlobalStateHook = () => {
 	return { globalState: state, setGlobalState }
 }
 
-export default useGlobalState
+export { useGlobalState }

@@ -1,5 +1,5 @@
-import type IfcElement from '@/classes/ifc-element'
-import type IfcModel from '@/classes/ifc-model'
+import type { IfcElement } from '@/classes'
+import type { IfcModel } from '@/classes'
 import type { Position } from '@/components/ifc-viewer/types'
 import { MeshLambertMaterial, type PerspectiveCamera, type Vector3, type WebGLRenderer } from 'three'
 

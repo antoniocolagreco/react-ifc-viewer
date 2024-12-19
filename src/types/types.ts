@@ -1,4 +1,4 @@
-import type IfcElement from '@/classes/ifc-element'
+import type { IfcElement } from '@/classes'
 import type { ReactNode } from 'react'
 import { type BufferGeometry, type Mesh, type MeshLambertMaterial, type ShaderMaterial } from 'three'
 

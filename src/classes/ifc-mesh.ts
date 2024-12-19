@@ -1,6 +1,6 @@
-import type { GeometryId, IfcMeshData, MaterialId } from '@/types/types'
+import type { GeometryId, IfcMeshData, MaterialId } from '@/types'
 import { Mesh, type BufferGeometry, type MeshLambertMaterial } from 'three'
-import type IfcElement from './ifc-element'
+import type { IfcElement } from './ifc-element'
 
 class IfcMesh extends Mesh<BufferGeometry, MeshLambertMaterial> {
 	override name: string = 'IfcMesh'
@@ -31,4 +31,4 @@ class IfcMesh extends Mesh<BufferGeometry, MeshLambertMaterial> {
 	}
 }
 
-export default IfcMesh
+export { IfcMesh }

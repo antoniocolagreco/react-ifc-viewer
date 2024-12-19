@@ -1,28 +1,44 @@
 'use client'
 
-import { Grid } from '@/3d-components/grid'
-import type IfcElement from '@/classes/ifc-element'
-import IfcMesh from '@/classes/ifc-mesh'
-import IfcModel from '@/classes/ifc-model'
-import { IFCViewerLoadingMessages } from '@/costants/ifc-viewer-messages'
-import useGlobalState from '@/hooks/use-global-state'
-import { fetchFile } from '@/utils/fetch-file'
-import { filterIfcElementsByPropertiesAndType, processIfcData } from '@/utils/ifc/properties-utils'
-import { restoreData } from '@/utils/ifc/save-utils/save-utils'
-import { isFragment, isIfcMarker } from '@/utils/react-utils/react-utils'
-import alignObject from '@/utils/three/align-object/align-object'
-import { createBoundingSphere, createSphereMesh, fitBoundingSphere } from '@/utils/three/camera-utils'
-import { disposeObjects } from '@/utils/three/dispose-utils'
-import { loadIfcModel, loadIfcProperties } from '@/utils/three/ifc-loader'
-import { getGroupPosition } from '@/utils/three/meshes-utils'
+import { Grid } from '@/3d-components'
+import type { IfcElement } from '@/classes'
+import { IfcMesh, IfcModel } from '@/classes'
+import { IfcAnchor, type IfcAnchorProps } from '@/components/ifc-anchor'
+import { type IfcOverlayProps } from '@/components/ifc-overlay'
+import { ProgressBar } from '@/components/progress-bar'
+import { IFCViewerLoadingMessages } from '@/costants'
+import { useGlobalState } from '@/hooks'
+import type {
+	IfcElementData,
+	IfcMarkerLink,
+	LambertMesh,
+	LinkRequirements,
+	Property,
+	Requirements,
+	SelectableRequirements,
+} from '@/types'
 import {
+	alignObject,
+	createBoundingSphere,
+	createSphereMesh,
+	disposeObjects,
+	fetchFile,
+	filterIfcElementsByPropertiesAndType,
+	fitBoundingSphere,
+	getGroupPosition,
+	isFragment,
+	isIfcMarker,
+	loadIfcModel,
+	loadIfcProperties,
+	processIfcData,
+	restoreData,
 	setElementToHidden,
 	setElementToHoveredMaterial,
 	setElementToOriginalMaterial,
 	setElementToSelectedMaterial,
 	setElementToTransparentMaterial,
 	transformViewportPositionToScreenPosition,
-} from '@/utils/viewer-utils/viewer-utils'
+} from '@/utils'
 import clsx from 'clsx'
 import {
 	Children,
@@ -37,15 +53,6 @@ import {
 	type ReactElement,
 	type ReactNode,
 } from 'react'
-import type {
-	IfcElementData,
-	IfcMarkerLink,
-	LambertMesh,
-	LinkRequirements,
-	Property,
-	Requirements,
-	SelectableRequirements,
-} from 'src/types/types'
 import {
 	AmbientLight,
 	DirectionalLight,
@@ -58,9 +65,6 @@ import {
 	type Sphere,
 } from 'three'
 import { OrbitControls } from 'three/examples/jsm/Addons.js'
-import { IfcAnchor, type IfcAnchorProps } from '../ifc-anchor'
-import { type IfcOverlayProps } from '../ifc-overlay'
-import { ProgressBar } from '../progress-bar'
 import './ifc-viewer.css'
 import type { LoadingStatus, MouseState, On3DModelLoadedType, ViewMode } from './types'
 
@@ -136,10 +140,10 @@ const IfcViewer = forwardRef<HTMLDivElement, IfcViewerProps>((props, ref) => {
 	const boundingSphereRef = useRef<Sphere>()
 	const boundingSphereMeshRef = useRef<LambertMesh>()
 
-	const selectedifcElementRef = useRef<IfcElement>()
-	const previousSelectedifcElementRef = useRef<IfcElement>()
-	const hoveredifcElementRef = useRef<IfcElement>()
-	const previousHoveredifcElementRef = useRef<IfcElement>()
+	const selectedIfcElementRef = useRef<IfcElement>()
+	const previousSelectedIfcElementRef = useRef<IfcElement>()
+	const hoveredIfcElementRef = useRef<IfcElement>()
+	const previousHoveredIfcElementRef = useRef<IfcElement>()
 
 	const selectableIntersectionsRef = useRef<Intersection<IfcMesh>[]>([])
 	const mouseStatusRef = useRef<MouseState>({ clicked: false, x: 0, y: 0 })
@@ -282,7 +286,7 @@ const IfcViewer = forwardRef<HTMLDivElement, IfcViewerProps>((props, ref) => {
 	}
 
 	const updateBoundingSphere = useCallback((): void => {
-		const meshes: IfcMesh[] = selectedifcElementRef.current?.children ?? modelRef.current.getAllMeshes()
+		const meshes: IfcMesh[] = selectedIfcElementRef.current?.children ?? modelRef.current.getAllMeshes()
 
 		boundingSphereRef.current = createBoundingSphere(meshes)
 
@@ -299,9 +303,9 @@ const IfcViewer = forwardRef<HTMLDivElement, IfcViewerProps>((props, ref) => {
 
 	const updateMeshDisplay = useCallback(
 		(ifcElement: IfcElement) => {
-			if (ifcElement === selectedifcElementRef.current) {
+			if (ifcElement === selectedIfcElementRef.current) {
 				setElementToSelectedMaterial(ifcElement, modelRef.current, selectedColor)
-			} else if (ifcElement === hoveredifcElementRef.current) {
+			} else if (ifcElement === hoveredIfcElementRef.current) {
 				setElementToHoveredMaterial(ifcElement, modelRef.current, hoverColor)
 			} else {
 				switch (viewModeRef.current) {
@@ -338,36 +342,36 @@ const IfcViewer = forwardRef<HTMLDivElement, IfcViewerProps>((props, ref) => {
 	}, [updateMeshDisplay])
 
 	const switchSelectedMesh = useCallback(() => {
-		if (previousSelectedifcElementRef.current) {
-			updateMeshDisplay(previousSelectedifcElementRef.current)
+		if (previousSelectedIfcElementRef.current) {
+			updateMeshDisplay(previousSelectedIfcElementRef.current)
 		}
-		if (selectedifcElementRef.current) {
-			updateMeshDisplay(selectedifcElementRef.current)
+		if (selectedIfcElementRef.current) {
+			updateMeshDisplay(selectedIfcElementRef.current)
 		}
 	}, [updateMeshDisplay])
 
 	const switchHoveredMesh = useCallback(() => {
-		if (previousHoveredifcElementRef.current) {
-			updateMeshDisplay(previousHoveredifcElementRef.current)
+		if (previousHoveredIfcElementRef.current) {
+			updateMeshDisplay(previousHoveredIfcElementRef.current)
 		}
-		if (hoveredifcElementRef.current) {
-			updateMeshDisplay(hoveredifcElementRef.current)
+		if (hoveredIfcElementRef.current) {
+			updateMeshDisplay(hoveredIfcElementRef.current)
 		}
 	}, [updateMeshDisplay])
 
 	const select = useCallback(
 		(ifcElement?: IfcElement): void => {
-			previousSelectedifcElementRef.current = selectedifcElementRef.current
-			selectedifcElementRef.current = ifcElement
+			previousSelectedIfcElementRef.current = selectedIfcElementRef.current
+			selectedIfcElementRef.current = ifcElement
 			updateBoundingSphere()
 			switchSelectedMesh()
 			renderScene()
 
 			console.log(
 				'IfcViewer | selectedifcElementRef.current:',
-				selectedifcElementRef.current?.userData.name,
-				selectedifcElementRef.current?.userData.type,
-				selectedifcElementRef.current?.userData.properties,
+				selectedIfcElementRef.current?.userData.name,
+				selectedIfcElementRef.current?.userData.type,
+				selectedIfcElementRef.current?.userData.properties,
 			)
 
 			if (onMeshSelect) {
@@ -379,13 +383,13 @@ const IfcViewer = forwardRef<HTMLDivElement, IfcViewerProps>((props, ref) => {
 
 	const hover = useCallback(
 		(ifcElement?: IfcElement): void => {
-			previousHoveredifcElementRef.current = hoveredifcElementRef.current
-			hoveredifcElementRef.current = ifcElement
+			previousHoveredIfcElementRef.current = hoveredIfcElementRef.current
+			hoveredIfcElementRef.current = ifcElement
 
 			switchHoveredMesh()
 			renderScene()
 
-			if (hoveredifcElementRef.current) {
+			if (hoveredIfcElementRef.current) {
 				setCursorStyle({ cursor: 'pointer' })
 				return
 			}
@@ -409,7 +413,7 @@ const IfcViewer = forwardRef<HTMLDivElement, IfcViewerProps>((props, ref) => {
 		pointerRef.current.y = -(mouseY / canvasRef.current.clientHeight) * 2 + 1
 	}
 
-	const updateIntersections = (): void => {
+	const updateIntersections = useCallback((): void => {
 		if (!cameraRef.current) {
 			throw new Error('Camera not found')
 		}
@@ -418,13 +422,16 @@ const IfcViewer = forwardRef<HTMLDivElement, IfcViewerProps>((props, ref) => {
 
 		const selectableIfcMeshes = allIntersections.filter(intersection => {
 			if (intersection.object instanceof IfcMesh) {
-				return intersection.object.parent.userData.selectable
+				if (selectableRequirements && selectableRequirements.length > 0) {
+					return intersection.object.parent.userData.selectable
+				}
+				return true
 			}
 			return false
 		}) as Intersection<IfcMesh>[]
 
 		selectableIntersectionsRef.current = selectableIfcMeshes
-	}
+	}, [selectableRequirements])
 
 	const handleMouseLeave = useCallback((): void => {
 		hover()
@@ -463,6 +470,7 @@ const IfcViewer = forwardRef<HTMLDivElement, IfcViewerProps>((props, ref) => {
 
 			const firstIntersectedMesh = selectableIntersectionsRef.current.at(0)?.object
 			const ifcElement = firstIntersectedMesh?.getifcElement()
+			console.log('IfcViewer | ifcElement:', ifcElement)
 
 			if (selectableRequirements && selectableRequirements.length > 0 && !ifcElement?.isSelectable()) {
 				select()
@@ -472,7 +480,7 @@ const IfcViewer = forwardRef<HTMLDivElement, IfcViewerProps>((props, ref) => {
 			select(ifcElement)
 			renderScene()
 		},
-		[enableMeshSelection, select, selectableRequirements, renderScene],
+		[enableMeshSelection, updateIntersections, selectableRequirements, select, renderScene],
 	)
 
 	const handleMouseMove = useCallback(
@@ -498,7 +506,7 @@ const IfcViewer = forwardRef<HTMLDivElement, IfcViewerProps>((props, ref) => {
 
 			hover(ifcElement)
 		},
-		[enableMeshHover, hover, selectableRequirements],
+		[enableMeshHover, hover, selectableRequirements, updateIntersections],
 	)
 
 	const fitView = useCallback((): void => {

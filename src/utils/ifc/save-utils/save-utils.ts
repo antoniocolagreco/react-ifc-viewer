@@ -1,6 +1,6 @@
-import type IfcModel from '@/classes/ifc-model'
-import IfcDataLoadingError from '@/errors/ifc-data-loading-error'
-import type { ExpressId, IfcElementData } from '@/types/types'
+import type { IfcModel } from '@/classes'
+import { IfcDataLoadingError } from '@/errors'
+import type { ExpressId, IfcElementData } from '@/types'
 
 /**
  * Extracts and returns a record of IFC element data to be saved from the given IFC model.

@@ -1,4 +1,4 @@
-import useIfcViewerCommands from '@/hooks/use-ifc-viewer-commands'
+import { useIfcViewerCommands } from '@/hooks/use-ifc-viewer-commands'
 import clsx from 'clsx'
 import { forwardRef, type ComponentRef, type HTMLAttributes } from 'react'
 import { IfcButton } from '../ifc-button'

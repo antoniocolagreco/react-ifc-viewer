@@ -1,4 +1,4 @@
-import type { Requirements } from '@/types/types'
+import type { Requirements } from '@/types'
 import type { FC, ReactNode } from 'react'
 
 type IfcOverlayProps = {

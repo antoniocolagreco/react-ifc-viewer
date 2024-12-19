@@ -1,7 +1,7 @@
-import IfcModel from '@/classes/ifc-model'
+import { IfcModel } from '@/classes'
 import { IfcProgressEvent } from '@/classes/ifc-progress-event'
-import type { IfcElementData } from '@/types/types'
-import { getIfcElementTypeAndProperties } from '@/utils/ifc/properties-utils'
+import type { IfcElementData } from '@/types'
+import { getIfcElementTypeAndProperties } from '@/utils'
 import { IfcAPI, LogLevel } from 'web-ifc'
 import { buildifcElement } from '../meshes-utils/meshes-utils'
 

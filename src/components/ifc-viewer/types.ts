@@ -1,6 +1,6 @@
-import type IfcElement from '@/classes/ifc-element'
-import type IfcModel from '@/classes/ifc-model'
-import type { Property } from '@/types/types'
+import type { IfcElement } from '@/classes'
+import type { IfcModel } from '@/classes'
+import type { Property } from '@/types'
 
 type IfcViewerStatus =
 	| 'NOT_INITIALIZED'

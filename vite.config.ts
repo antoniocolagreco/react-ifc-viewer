@@ -1,6 +1,7 @@
 import react from '@vitejs/plugin-react-swc'
 import { join, resolve } from 'path'
 import { defineConfig, mergeConfig } from 'vite'
+import cssInjectedByJs from 'vite-plugin-css-injected-by-js'
 import dts from 'vite-plugin-dts'
 import { defineConfig as testDefineConfig } from 'vitest/config'
 import { peerDependencies } from './package.json'
@@ -11,33 +12,46 @@ const basicConfig = defineConfig({
 	base,
 	plugins: [
 		react(),
-		dts({ rollupTypes: true }), // Output .d.ts files
+		dts({
+			rollupTypes: true,
+			strictOutput: true,
+			exclude: ['src/test', '**/*.stories.tsx', '**/*.test.tsx'],
+		}),
+		cssInjectedByJs({
+			relativeCSSInjection: true,
+		}),
 	],
 	resolve: {
 		alias: {
 			'@': resolve(__dirname, 'src'),
-			'@public': resolve(__dirname, 'public'),
 		},
 	},
 	build: {
 		target: 'esnext',
+		copyPublicDir: false,
 		minify: false,
 		lib: {
-			entry: resolve(__dirname, join('src', 'index.ts')),
+			entry: resolve(__dirname, join('src/index.ts')),
 			fileName: 'index',
 			formats: ['es', 'cjs'],
 		},
 		rollupOptions: {
 			// Exclude peer dependencies from the bundle to reduce bundle size
 			external: ['react/jsx-runtime', ...Object.keys(peerDependencies)],
+			output: {
+				format: 'es',
+			},
 		},
+	},
+	css: {
+		modules: false,
 	},
 })
 
 const testConfig = testDefineConfig({
 	test: {
 		environment: 'jsdom',
-		setupFiles: './src/test/setup.ts',
+		setupFiles: 'src/test/setup.ts',
 		coverage: {
 			all: false,
 			enabled: true,

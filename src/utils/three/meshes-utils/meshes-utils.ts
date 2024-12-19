@@ -1,7 +1,6 @@
-import IfcElement from '@/classes/ifc-element'
-import IfcMesh from '@/classes/ifc-mesh'
-import type IfcModel from '@/classes/ifc-model'
-import type { GeometryId, MaterialId } from '@/types/types'
+import type { IfcModel } from '@/classes'
+import { IfcElement, IfcMesh } from '@/classes'
+import type { GeometryId, MaterialId } from '@/types'
 import { Box3, BufferAttribute, BufferGeometry, Color, Group, Matrix4, MeshLambertMaterial, Vector3 } from 'three'
 import type { FlatMesh, IfcAPI } from 'web-ifc'
 
