@@ -1,5 +1,5 @@
-import type IfcModel from '@/classes/ifc-model'
-import { fetchFile } from '@/utils/fetch-file'
+import { IfcModel } from '@/classes'
+import { fetchFile } from '@/utils'
 import path from 'node:path'
 import { Group } from 'three'
 import { describe, expect, it } from 'vitest'
@@ -7,7 +7,7 @@ import { loadIfcModel } from './ifc-loader'
 
 describe('load-ifc', () => {
 	it('should load the file', async () => {
-		const url = path.resolve('@public/test/', 'castle.ifc')
+		const url = path.resolve('test', 'castle.ifc')
 
 		let ifcBuffer: Uint8Array = new Uint8Array(0)
 

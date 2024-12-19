@@ -1,4 +1,4 @@
-import useGlobalState from './use-global-state'
+import { useGlobalState } from './use-global-state'
 
 const useIfcViewerCommands = () => {
 	const { globalState } = useGlobalState()
@@ -6,4 +6,4 @@ const useIfcViewerCommands = () => {
 	return globalState.commands
 }
 
-export default useIfcViewerCommands
+export { useIfcViewerCommands }

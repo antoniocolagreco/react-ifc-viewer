@@ -1,4 +1,4 @@
-import type { LambertMesh } from '@/types/types'
+import type { LambertMesh } from '@/types'
 import {
 	Box3,
 	Mesh,

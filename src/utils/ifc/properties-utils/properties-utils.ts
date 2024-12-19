@@ -1,5 +1,4 @@
-import type IfcElement from '@/classes/ifc-element'
-import type IfcModel from '@/classes/ifc-model'
+import { IfcElement, IfcModel } from '@/classes'
 import type {
 	ExpressId,
 	IfcElementData,
@@ -9,7 +8,7 @@ import type {
 	PropertyValue,
 	Requirements,
 	SelectableRequirements,
-} from '@/types/types'
+} from '@/types'
 import {
 	IFC2X3,
 	IFCRELAGGREGATES,
@@ -457,24 +456,24 @@ const setIfcDataLinks = (
  * @param ifcElementData - The IFC element data to process.
  * @param allIfcElementsData - An array of all IFC elements data.
  * @param linkRequirements - Optional array of link requirements to set for the IFC element data.
- * @param selectableRequirement - Optional array of selectable requirements to set for the IFC element data.
- * @param alwaysVisibleRequirement - Optional array of requirements to set the IFC element data as always visible.
+ * @param selectableRequirements - Optional array of selectable requirements to set for the IFC element data.
+ * @param alwaysVisibleRequirements - Optional array of requirements to set the IFC element data as always visible.
  */
 const processIfcData = (
 	ifcElementData: IfcElementData,
 	allIfcElementsData: IfcElementData[],
 	linkRequirements?: LinkRequirements[],
-	selectableRequirement?: SelectableRequirements[],
-	alwaysVisibleRequirement?: Requirements[],
+	selectableRequirements?: SelectableRequirements[],
+	alwaysVisibleRequirements?: Requirements[],
 ) => {
 	if (linkRequirements) {
 		setIfcDataLinks(ifcElementData, allIfcElementsData, linkRequirements)
 	}
-	if (selectableRequirement) {
-		setIfcDataItemSelectable(ifcElementData, allIfcElementsData, selectableRequirement)
+	if (selectableRequirements) {
+		setIfcDataItemSelectable(ifcElementData, allIfcElementsData, selectableRequirements)
 	}
-	if (alwaysVisibleRequirement) {
-		setIfcDataAlwaysVisible(ifcElementData, alwaysVisibleRequirement)
+	if (alwaysVisibleRequirements) {
+		setIfcDataAlwaysVisible(ifcElementData, alwaysVisibleRequirements)
 	}
 }
 

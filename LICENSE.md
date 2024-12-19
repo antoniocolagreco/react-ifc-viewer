@@ -19,3 +19,6 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+This project includes code from [Web IFC](https://github.com/ThatOpen/engine_web-ifc), which is licensed under the Mozilla Public License Version 2.0.
+See [License](https://github.com/ThatOpen/engine_web-ifc/blob/main/LICENSE.md) for the full license text.

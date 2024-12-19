@@ -74,4 +74,4 @@ const alignObject = (object: Object3D, position: CenterObjectSettings = centerAl
 	object.position.z += zOffset
 }
 
-export default alignObject
+export { alignObject }

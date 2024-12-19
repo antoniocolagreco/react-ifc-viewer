@@ -71,6 +71,6 @@
 			"@/*": ["src/*"]
 		}
 	},
-	"include": ["**/*.ts", "**/*.tsx"],
+	"include": ["src/**/*.ts", "src/**/*.tsx"],
 	"exclude": []
 }

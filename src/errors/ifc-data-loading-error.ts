@@ -7,4 +7,4 @@ class IfcDataLoadingError extends Error {
 	}
 }
 
-export default IfcDataLoadingError
+export { IfcDataLoadingError }
