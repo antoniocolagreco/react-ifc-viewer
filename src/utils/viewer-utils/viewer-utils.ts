@@ -31,10 +31,11 @@ const setElementToSelectedMaterial = (ifcElement: IfcElement, ifcModel: IfcModel
 			selectedMaterial = new MeshLambertMaterial()
 			ifcModel.setElementSelectMaterial(ifcMesh.userData.materialId, selectedMaterial)
 		}
-		selectedMaterial.transparent = false
+		// selectedMaterial.opacity = 1
+		// selectedMaterial.transparent = false
 		selectedMaterial.emissive.setHex(color)
 		selectedMaterial.color.setHex(color)
-		selectedMaterial.depthTest = false
+		// selectedMaterial.depthTest = false
 		ifcMesh.material = selectedMaterial
 		ifcMesh.renderOrder = 1
 	}
@@ -49,11 +50,11 @@ const setElementToHoveredMaterial = (ifcElement: IfcElement, ifcModel: IfcModel,
 			hoveredMaterial = new MeshLambertMaterial()
 			ifcModel.setElementHoverMaterial(ifcMesh.userData.materialId, hoveredMaterial)
 		}
-		hoveredMaterial.opacity = 1
-		hoveredMaterial.transparent = false
+		// hoveredMaterial.opacity = 1
+		// hoveredMaterial.transparent = false
 		hoveredMaterial.emissive.setHex(color)
 		hoveredMaterial.color.setHex(color)
-		hoveredMaterial.depthTest = false
+		// hoveredMaterial.depthTest = false
 		ifcMesh.material = hoveredMaterial
 		ifcMesh.renderOrder = 1
 	}
@@ -72,8 +73,8 @@ const setElementToTransparentMaterial = (ifcElement: IfcElement, ifcModel: IfcMo
 		}
 		transparentMaterial.transparent = true
 		transparentMaterial.opacity = 0.3
-		transparentMaterial.depthTest = false
-		transparentMaterial.depthWrite = false
+		// transparentMaterial.depthTest = false
+		// transparentMaterial.depthWrite = false
 		ifcMesh.material = transparentMaterial
 		ifcMesh.renderOrder = 0
 	}

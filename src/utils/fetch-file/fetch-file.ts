@@ -1,10 +1,10 @@
-import { IfcProgressEvent } from '@/classes/ifc-progress-event'
+import type { ProgressStatus } from '@/types'
 import { isRunningInBrowser } from '@/utils'
 
 type FetchFileFunctionType = (
 	url: string,
 	onLoad: (file: Uint8Array) => void,
-	onProgress: (event: IfcProgressEvent) => void,
+	onProgress: (status: ProgressStatus) => void,
 	onError: (error: Error) => void,
 ) => Promise<void>
 
@@ -39,7 +39,7 @@ const fetchFile: FetchFileFunctionType = async (url: string, onLoad, onProgress,
 
 			chunks.push(value)
 			loaded += value.length
-			onProgress(new IfcProgressEvent('PROGRESS', { loaded, total }))
+			onProgress({ state: 'PROGRESS', loaded, total })
 		}
 
 		const fileBuffer = new Uint8Array(loaded)
@@ -49,11 +49,11 @@ const fetchFile: FetchFileFunctionType = async (url: string, onLoad, onProgress,
 			position += chunk.length
 		}
 
-		onProgress(new IfcProgressEvent('DONE', { loaded, total }))
+		onProgress({ state: 'DONE', loaded, total })
 		onLoad(fileBuffer)
 	} catch (error: unknown) {
 		onError(error as Error)
-		onProgress(new IfcProgressEvent('ERROR', { loaded, total }))
+		onProgress({ state: 'ERROR', loaded, total })
 	}
 }
 

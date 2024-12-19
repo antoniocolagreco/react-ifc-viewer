@@ -52,6 +52,12 @@ type IfcMarkerLink = { element: IfcElement; content: ReactNode }
 type GeometryId = string
 type MaterialId = string
 
+type ProgressStatus = {
+	state: 'PROGRESS' | 'DONE' | 'ERROR'
+	loaded?: number
+	total?: number
+}
+
 export type {
 	ExpressId,
 	GeometryId,
@@ -64,6 +70,7 @@ export type {
 	LinkRequirements,
 	MarkerRequirements,
 	MaterialId,
+	ProgressStatus,
 	Property,
 	PropertySet,
 	PropertyValue,

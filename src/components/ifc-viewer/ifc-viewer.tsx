@@ -28,6 +28,7 @@ import {
 	getGroupPosition,
 	isFragment,
 	isIfcMarker,
+	isRunningInBrowser,
 	loadIfcModel,
 	loadIfcProperties,
 	processIfcData,
@@ -42,13 +43,13 @@ import {
 import clsx from 'clsx'
 import {
 	Children,
-	forwardRef,
 	useCallback,
 	useEffect,
 	useRef,
 	useState,
+	type ComponentPropsWithRef,
 	type CSSProperties,
-	type HTMLAttributes,
+	type FC,
 	type MouseEvent,
 	type ReactElement,
 	type ReactNode,
@@ -71,7 +72,7 @@ import type { LoadingStatus, MouseState, On3DModelLoadedType, ViewMode } from '.
 const LAYER_MESHES = 0
 const LAYER_HELPERS = 29
 
-type IfcViewerProps = HTMLAttributes<HTMLDivElement> & {
+type IfcViewerProps = ComponentPropsWithRef<'div'> & {
 	url: string
 	data?: IfcElementData[]
 
@@ -95,7 +96,7 @@ type IfcViewerProps = HTMLAttributes<HTMLDivElement> & {
 	enableMeshHover?: boolean
 }
 
-const IfcViewer = forwardRef<HTMLDivElement, IfcViewerProps>((props, ref) => {
+const IfcViewer: FC<IfcViewerProps> = props => {
 	const {
 		url,
 		data,
@@ -118,6 +119,7 @@ const IfcViewer = forwardRef<HTMLDivElement, IfcViewerProps>((props, ref) => {
 
 		className,
 		children,
+		ref,
 
 		...otherProps
 	} = props
@@ -125,11 +127,11 @@ const IfcViewer = forwardRef<HTMLDivElement, IfcViewerProps>((props, ref) => {
 	const containerRef = useRef<HTMLDivElement>(null)
 	const canvasRef = useRef<HTMLCanvasElement>(null)
 
-	const rendererRef = useRef<WebGLRenderer>()
-	const cameraRef = useRef<PerspectiveCamera>()
-	const controlsRef = useRef<OrbitControls>()
+	const rendererRef = useRef<WebGLRenderer>(undefined)
+	const cameraRef = useRef<PerspectiveCamera>(undefined)
+	const controlsRef = useRef<OrbitControls>(undefined)
 
-	const animationFrameIdRef = useRef<number>()
+	const animationFrameIdRef = useRef<number>(undefined)
 
 	const sceneRef = useRef<Scene>(new Scene())
 	const modelRef = useRef<IfcModel>(new IfcModel())
@@ -137,21 +139,21 @@ const IfcViewer = forwardRef<HTMLDivElement, IfcViewerProps>((props, ref) => {
 
 	const pointerRef = useRef<Vector2>(new Vector2())
 
-	const boundingSphereRef = useRef<Sphere>()
-	const boundingSphereMeshRef = useRef<LambertMesh>()
+	const boundingSphereRef = useRef<Sphere>(undefined)
+	const boundingSphereMeshRef = useRef<LambertMesh>(undefined)
 
-	const selectedIfcElementRef = useRef<IfcElement>()
-	const previousSelectedIfcElementRef = useRef<IfcElement>()
-	const hoveredIfcElementRef = useRef<IfcElement>()
-	const previousHoveredIfcElementRef = useRef<IfcElement>()
+	const selectedIfcElementRef = useRef<IfcElement>(undefined)
+	const previousSelectedIfcElementRef = useRef<IfcElement>(undefined)
+	const hoveredIfcElementRef = useRef<IfcElement>(undefined)
+	const previousHoveredIfcElementRef = useRef<IfcElement>(undefined)
 
 	const selectableIntersectionsRef = useRef<Intersection<IfcMesh>[]>([])
 	const mouseStatusRef = useRef<MouseState>({ clicked: false, x: 0, y: 0 })
 
-	const resizeObserverRef = useRef<ResizeObserver>()
+	const resizeObserverRef = useRef<ResizeObserver>(undefined)
 
 	const renderingEnabledRef = useRef(false)
-	const renderingTimeoutRef = useRef<ReturnType<typeof setTimeout>>()
+	const renderingTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined)
 
 	const viewModeRef = useRef<ViewMode>('VIEW_MODE_ALL')
 
@@ -791,6 +793,10 @@ const IfcViewer = forwardRef<HTMLDivElement, IfcViewerProps>((props, ref) => {
 	])
 
 	useEffect(() => {
+		if (!isRunningInBrowser()) {
+			return
+		}
+
 		init()
 		void loadFile()
 
@@ -834,8 +840,6 @@ const IfcViewer = forwardRef<HTMLDivElement, IfcViewerProps>((props, ref) => {
 			)}
 		</div>
 	)
-})
-
-IfcViewer.displayName = 'IfcViewer'
+}
 
 export { IfcViewer, type IfcViewerProps }

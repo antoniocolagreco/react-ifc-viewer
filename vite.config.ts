@@ -1,5 +1,6 @@
 import react from '@vitejs/plugin-react-swc'
 import { join, resolve } from 'path'
+import { preserveDirective } from 'rollup-preserve-directives'
 import { defineConfig, mergeConfig } from 'vite'
 import cssInjectedByJs from 'vite-plugin-css-injected-by-js'
 import dts from 'vite-plugin-dts'
@@ -19,6 +20,7 @@ const basicConfig = defineConfig({
 		}),
 		cssInjectedByJs({
 			relativeCSSInjection: true,
+			topExecutionPriority: false,
 		}),
 	],
 	resolve: {
@@ -27,9 +29,10 @@ const basicConfig = defineConfig({
 		},
 	},
 	build: {
+		cssCodeSplit: true,
 		target: 'esnext',
 		copyPublicDir: false,
-		minify: false,
+		minify: true,
 		lib: {
 			entry: resolve(__dirname, join('src/index.ts')),
 			fileName: 'index',
@@ -40,7 +43,9 @@ const basicConfig = defineConfig({
 			external: ['react/jsx-runtime', ...Object.keys(peerDependencies)],
 			output: {
 				format: 'es',
+				preserveModules: true,
 			},
+			plugins: [preserveDirective()],
 		},
 	},
 	css: {

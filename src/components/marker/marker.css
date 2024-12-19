@@ -11,18 +11,18 @@
 	border-style: solid;
 
 	&.blue {
-		border-color: var(--blue-highlight-color);
+		border-color: var(--color-blue-highlight);
 	}
 
 	&.green {
-		border-color: var(--green-highlight-color);
+		border-color: var(--color-green-highlight);
 	}
 
 	&.yellow {
-		border-color: var(--yellow-highlight-color);
+		border-color: var(--color-yellow-highlight);
 	}
 
 	&.red {
-		border-color: var(--red-highlight-color);
+		border-color: var(--color-red-highlight);
 	}
 }

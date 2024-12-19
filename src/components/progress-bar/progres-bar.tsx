@@ -1,10 +1,10 @@
 import clsx from 'clsx'
-import { forwardRef, type CSSProperties, type HTMLAttributes } from 'react'
+import { type ComponentPropsWithRef, type CSSProperties, type FC } from 'react'
 import './progress-bar.css'
 
 type ProgressBarState = 'LOADING' | 'DONE' | 'ERROR'
 
-type ProgressProps = Omit<HTMLAttributes<HTMLDivElement>, 'children'> & {
+type ProgressProps = Omit<ComponentPropsWithRef<'div'>, 'children'> & {
 	max: number
 	value: number
 	backgroundClassName?: string
@@ -16,7 +16,7 @@ type ProgressProps = Omit<HTMLAttributes<HTMLDivElement>, 'children'> & {
 	children?: string
 }
 
-const ProgressBar = forwardRef<HTMLDivElement, ProgressProps>((props, ref) => {
+const ProgressBar: FC<ProgressProps> = props => {
 	const {
 		className,
 		loadingClassName = 'loading',
@@ -56,7 +56,6 @@ const ProgressBar = forwardRef<HTMLDivElement, ProgressProps>((props, ref) => {
 			aria-valuemin={0}
 			aria-valuenow={value}
 			className={clsx('progress-bar', className)}
-			ref={ref}
 			role="progressbar"
 			{...rest}
 		>
@@ -65,8 +64,6 @@ const ProgressBar = forwardRef<HTMLDivElement, ProgressProps>((props, ref) => {
 			</div>
 		</div>
 	)
-})
-
-ProgressBar.displayName = 'ProgressBar'
+}
 
 export { ProgressBar, type ProgressProps }

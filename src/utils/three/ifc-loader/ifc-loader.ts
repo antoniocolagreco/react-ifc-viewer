@@ -1,6 +1,5 @@
 import { IfcModel } from '@/classes'
-import { IfcProgressEvent } from '@/classes/ifc-progress-event'
-import type { IfcElementData } from '@/types'
+import type { IfcElementData, ProgressStatus } from '@/types'
 import { getIfcElementTypeAndProperties } from '@/utils'
 import { IfcAPI, LogLevel } from 'web-ifc'
 import { buildifcElement } from '../meshes-utils/meshes-utils'
@@ -48,7 +47,7 @@ const loadIfcModel: LoadIfcFunctionType = async (ifcBuffer, onLoad, onError) => 
 type LoadIfcDataType = (
 	ifcBuffer: Uint8Array,
 	onLoad: (data: IfcElementData[]) => void,
-	onProgress: (status: IfcProgressEvent) => void,
+	onProgress: (status: ProgressStatus) => void,
 	onError: (error: Error) => void,
 ) => Promise<void>
 
@@ -91,25 +90,13 @@ const loadIfcProperties: LoadIfcDataType = async (ifcBuffer: Uint8Array, onLoad,
 			const ifcUserData = await promise
 			data.push(ifcUserData)
 			loaded++
-			onProgress(
-				new IfcProgressEvent('PROGRESS', {
-					loaded,
-					total,
-					lengthComputable: true,
-				}),
-			)
+			onProgress({ state: 'PROGRESS', loaded, total })
 		}
 
-		onProgress(
-			new IfcProgressEvent('DONE', {
-				loaded,
-				total,
-				lengthComputable: true,
-			}),
-		)
+		onProgress({ state: 'DONE', loaded, total })
 		onLoad(data)
 	} catch (error) {
-		onProgress(new IfcProgressEvent('ERROR'))
+		onProgress({ state: 'ERROR' })
 		onError(error as Error)
 	} finally {
 		if (modelID !== -1) {

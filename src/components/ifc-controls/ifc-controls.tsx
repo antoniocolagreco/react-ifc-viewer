@@ -1,16 +1,17 @@
+'use client'
 import { useIfcViewerCommands } from '@/hooks/use-ifc-viewer-commands'
 import clsx from 'clsx'
-import { forwardRef, type ComponentRef, type HTMLAttributes } from 'react'
+import { type ComponentPropsWithRef, type FC } from 'react'
 import { IfcButton } from '../ifc-button'
 import './ifc-controls.css'
 
-type IfcControlsProps = HTMLAttributes<HTMLDivElement>
+type IfcControlsProps = ComponentPropsWithRef<'div'>
 
-const IfcControls = forwardRef<ComponentRef<'div'>, IfcControlsProps>((props, ref) => {
+const IfcControls: FC<IfcControlsProps> = props => {
 	const { className, ...rest } = props
 	const { changeViewMode, fitView, focusView, resetView } = useIfcViewerCommands()
 	return (
-		<div className={clsx('ifc-controls', className)} ref={ref} {...rest}>
+		<div className={clsx('ifc-controls', className)} {...rest}>
 			<IfcButton
 				onClick={() => {
 					changeViewMode()
@@ -41,8 +42,6 @@ const IfcControls = forwardRef<ComponentRef<'div'>, IfcControlsProps>((props, re
 			</IfcButton>
 		</div>
 	)
-})
-
-IfcControls.displayName = 'IfcControls'
+}
 
 export { IfcControls }

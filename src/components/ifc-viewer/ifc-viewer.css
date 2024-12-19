@@ -1,4 +1,19 @@
 .ifc-viewer {
+	--color-white: #ffffff;
+	--color-black: #000000;
+	--color-gray-light: #e5e7eb;
+	--color-gray-light-transparent: rgba(229, 231, 235, 0.5);
+	--color-gray: #737373;
+	--color-gray-dark: #404040;
+	--color-blue: #2563eb;
+	--color-blue-highlight: #0000cc;
+	--color-green: #16a34a;
+	--color-green-highlight: #00cc00;
+	--color-yellow: #eab308;
+	--color-yellow-highlight: #cccc00;
+	--color-red: #dc2626;
+	--color-red-highlight: #cc0000;
+
 	position: relative;
 	min-width: 280px;
 	min-height: 280px;

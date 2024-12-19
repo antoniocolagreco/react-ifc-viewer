@@ -1,20 +1,20 @@
-import { forwardRef, type ReactNode } from 'react'
+import { type ComponentPropsWithRef, type FC, type ReactNode } from 'react'
 import type { Position } from '../ifc-viewer/types'
 import './ifc-anchor.css'
 
-type IfcAnchorProps = {
+type IfcAnchorProps = ComponentPropsWithRef<'div'> & {
 	position: Position
 	children: ReactNode
 }
 
-const IfcAnchor = forwardRef<HTMLDivElement, IfcAnchorProps>(({ position, children }, ref) => {
+const IfcAnchor: FC<IfcAnchorProps> = props => {
+	const { position, children } = props
+
 	return (
-		<div className="ifc-anchor" style={{ top: position.y, left: position.x }} ref={ref}>
+		<div className="ifc-anchor" style={{ top: position.y, left: position.x }}>
 			{children}
 		</div>
 	)
-})
-
-IfcAnchor.displayName = 'IfcAnchor'
+}
 
 export { IfcAnchor, type IfcAnchorProps }
