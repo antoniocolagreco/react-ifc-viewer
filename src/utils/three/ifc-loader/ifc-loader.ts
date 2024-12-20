@@ -4,24 +4,27 @@ import { getIfcElementTypeAndProperties } from '@/utils'
 import { IfcAPI, LogLevel } from 'web-ifc'
 import { buildifcElement } from '../meshes-utils/meshes-utils'
 
+type WasmPathType = { path: string; absolute?: boolean }
+
 type LoadIfcFunctionType = (
 	ifcBuffer: Uint8Array,
 	onLoad: (ifcModel: IfcModel) => void,
 	onError: (error: Error) => void,
+	wasmPath?: WasmPathType,
 ) => Promise<void>
 
-const loadIfcModel: LoadIfcFunctionType = async (ifcBuffer, onLoad, onError) => {
+const defaultWasmPath: WasmPathType = {
+	path: `${location.origin}${import.meta.env.BASE_URL}wasm/`,
+	absolute: true,
+}
+
+const loadIfcModel: LoadIfcFunctionType = async (ifcBuffer, onLoad, onError, wasmPath = defaultWasmPath) => {
 	const ifcAPI = new IfcAPI()
 	const ifcModel = new IfcModel()
 
 	let modelID = -1
 
 	try {
-		const wasmPath = {
-			path: `${location.origin}${import.meta.env.BASE_URL}wasm/`,
-			absolute: true,
-		}
-
 		ifcAPI.SetWasmPath(wasmPath.path, wasmPath.absolute)
 
 		await ifcAPI.Init()

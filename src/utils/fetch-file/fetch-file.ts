@@ -1,5 +1,4 @@
 import type { ProgressStatus } from '@/types'
-import { isRunningInBrowser } from '@/utils'
 
 type FetchFileFunctionType = (
 	url: string,
@@ -15,9 +14,6 @@ const fetchFile: FetchFileFunctionType = async (url: string, onLoad, onProgress,
 	try {
 		const chunks: Uint8Array[] = []
 
-		if (!isRunningInBrowser()) {
-			throw new Error('This function is only available in the browser')
-		}
 		const response = await fetch(url)
 		if (!response.ok) {
 			throw new Error(`File not found at "${url}"`)
