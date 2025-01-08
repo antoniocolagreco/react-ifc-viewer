@@ -62,6 +62,7 @@ const getIfcElementTypeAndProperties = (ifcAPI: IfcAPI, modelID: number, express
 
 	for (const relation of relations) {
 		switch (relation.type) {
+			// Proprietà specifiche dell'oggetto
 			case IFCRELDEFINESBYPROPERTIES: {
 				const relationDefinesByProperties = relation as IFC2X3.IfcRelDefinesByProperties
 				const handle = relationDefinesByProperties.RelatingPropertyDefinition as Handle<IFC2X3.IfcPropertySet>
@@ -81,14 +82,19 @@ const getIfcElementTypeAndProperties = (ifcAPI: IfcAPI, modelID: number, express
 				}
 				break
 			}
+			// Proprietà ereditate dal tipo
 			case IFCRELDEFINESBYTYPE: {
 				// const relationDefinesByType = relation as IFC2X3.IfcRelDefinesByType
 				// const relatedObjectsHandles = relationDefinesByType.RelatedObjects as Handle<IFC2X3.IfcObject>[]
 				// const relatedTypeHandle = relationDefinesByType.RelatingType as Handle<IFC2X3.IfcTypeObject>
-				// console.log('IFCRELDEFINESBYTYPE', relationDefinesByType.Name?.value)
-				// console.log(`Skipping IFCRELDEFINESBYTYPE`, relation.expressID)
+				// const relatedType = ifcAPI.GetLine(modelID, relatedTypeHandle.value, true) as IFC2X3.IfcTypeObject
+				// const relatedObjects = relatedObjectsHandles.map(handle => {
+				// 	const line = ifcAPI.GetLine(modelID, handle.value, true) as IFC2X3.IfcObject
+				// 	return line
+				// })
 				break
 			}
+			// Proprità relative all'aggregazione (piano, edificio, ecc.)
 			case IFCRELAGGREGATES: {
 				// const relationAggregates = relation as IFC2X3.IfcRelAggregates
 				// const relatedObjectsHandles = relationAggregates.RelatedObjects as Handle<IFC2X3.IfcObjectDefinition>[]
@@ -97,6 +103,7 @@ const getIfcElementTypeAndProperties = (ifcAPI: IfcAPI, modelID: number, express
 				// console.log(`Skipping IFCRELAGGREGATES`, relation.expressID)
 				break
 			}
+			// Proprietà assegnate all'oggetto
 			case IFCRELASSIGNS: {
 				// const relationAssigns = relation as IFC2X3.IfcRelAssigns
 				// const relatedObjectsHandles = relationAssigns.RelatedObjects as Handle<IFC2X3.IfcObjectDefinition>[]

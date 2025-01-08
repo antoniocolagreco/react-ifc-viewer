@@ -1,8 +1,15 @@
-import type { IfcElement } from '@/classes'
-import type { IfcModel } from '@/classes'
+import type { IfcElement, IfcModel } from '@/classes'
 import type { Position } from '@/components/ifc-viewer/types'
-import { MeshLambertMaterial, type PerspectiveCamera, type Vector3, type WebGLRenderer } from 'three'
+import { Color, MeshLambertMaterial, type PerspectiveCamera, type Vector3, type WebGLRenderer } from 'three'
 
+/**
+ * Transforms a 3D position in the viewport to a 2D screen position.
+ *
+ * @param camera - The perspective camera used for the scene.
+ * @param renderer - The WebGL renderer used to render the scene.
+ * @param position - The 3D position in the viewport to be transformed.
+ * @returns The 2D screen position corresponding to the given 3D viewport position.
+ */
 const transformViewportPositionToScreenPosition = (
 	camera: PerspectiveCamera,
 	renderer: WebGLRenderer,
@@ -23,7 +30,7 @@ const transformViewportPositionToScreenPosition = (
 	return { x, y }
 }
 
-const setElementToSelectedMaterial = (ifcElement: IfcElement, ifcModel: IfcModel, color: number): void => {
+const setMaterialToSelected = (ifcElement: IfcElement, ifcModel: IfcModel, color: number = 0x16a34a): void => {
 	ifcElement.visible = true
 	for (const ifcMesh of ifcElement.children) {
 		let selectedMaterial = ifcModel.getElementSelectMaterial(ifcMesh.userData.materialId)
@@ -31,17 +38,22 @@ const setElementToSelectedMaterial = (ifcElement: IfcElement, ifcModel: IfcModel
 			selectedMaterial = new MeshLambertMaterial()
 			ifcModel.setElementSelectMaterial(ifcMesh.userData.materialId, selectedMaterial)
 		}
-		// selectedMaterial.opacity = 1
-		// selectedMaterial.transparent = false
+		let originalMaterial = ifcModel.getElementMaterial(ifcMesh.userData.materialId)
+		if (!originalMaterial) {
+			originalMaterial = ifcMesh.material
+		}
+		const mixedColor = new Color()
+		mixedColor.lerpColors(originalMaterial.color, selectedMaterial.color, 0.5)
+		selectedMaterial.color = mixedColor
 		selectedMaterial.emissive.setHex(color)
-		selectedMaterial.color.setHex(color)
-		// selectedMaterial.depthTest = false
+		selectedMaterial.emissiveIntensity = 1
+
 		ifcMesh.material = selectedMaterial
 		ifcMesh.renderOrder = 1
 	}
 }
 
-const setElementToHoveredMaterial = (ifcElement: IfcElement, ifcModel: IfcModel, color: number): void => {
+const setMaterialToHovered = (ifcElement: IfcElement, ifcModel: IfcModel, color: number = 0xffffff): void => {
 	ifcElement.visible = true
 
 	for (const ifcMesh of ifcElement.children) {
@@ -50,17 +62,23 @@ const setElementToHoveredMaterial = (ifcElement: IfcElement, ifcModel: IfcModel,
 			hoveredMaterial = new MeshLambertMaterial()
 			ifcModel.setElementHoverMaterial(ifcMesh.userData.materialId, hoveredMaterial)
 		}
-		// hoveredMaterial.opacity = 1
-		// hoveredMaterial.transparent = false
+		let originalMaterial = ifcModel.getElementMaterial(ifcMesh.userData.materialId)
+		if (!originalMaterial) {
+			originalMaterial = ifcMesh.material
+		}
+		const mixedColor = new Color()
+		mixedColor.lerpColors(originalMaterial.color, hoveredMaterial.color, 0.1)
+
+		hoveredMaterial.color = mixedColor
 		hoveredMaterial.emissive.setHex(color)
-		hoveredMaterial.color.setHex(color)
-		// hoveredMaterial.depthTest = false
+		hoveredMaterial.emissiveIntensity = 0.1
+
 		ifcMesh.material = hoveredMaterial
 		ifcMesh.renderOrder = 1
 	}
 }
 
-const setElementToTransparentMaterial = (ifcElement: IfcElement, ifcModel: IfcModel): void => {
+const setMaterialToTransparent = (ifcElement: IfcElement, ifcModel: IfcModel): void => {
 	ifcElement.visible = true
 
 	for (const ifcMesh of ifcElement.children) {
@@ -80,7 +98,7 @@ const setElementToTransparentMaterial = (ifcElement: IfcElement, ifcModel: IfcMo
 	}
 }
 
-const setElementToOriginalMaterial = (ifcElement: IfcElement, ifcModel: IfcModel): void => {
+const setMaterialToDefault = (ifcElement: IfcElement, ifcModel: IfcModel): void => {
 	ifcElement.visible = true
 	for (const ifcMesh of ifcElement.children) {
 		const originalMaterial = ifcModel.getElementMaterial(ifcMesh.userData.materialId)
@@ -91,15 +109,15 @@ const setElementToOriginalMaterial = (ifcElement: IfcElement, ifcModel: IfcModel
 	}
 }
 
-const setElementToHidden = (ifcElement: IfcElement): void => {
+const setMaterialToHidden = (ifcElement: IfcElement): void => {
 	ifcElement.visible = false
 }
 
 export {
-	setElementToHidden,
-	setElementToHoveredMaterial,
-	setElementToOriginalMaterial,
-	setElementToSelectedMaterial,
-	setElementToTransparentMaterial,
+	setMaterialToDefault,
+	setMaterialToHidden,
+	setMaterialToHovered,
+	setMaterialToSelected,
+	setMaterialToTransparent,
 	transformViewportPositionToScreenPosition,
 }

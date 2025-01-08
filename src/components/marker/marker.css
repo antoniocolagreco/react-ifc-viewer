@@ -10,6 +10,12 @@
 	border-color: #737373;
 	border-style: solid;
 
+	&.hoverEffect:hover {
+		width: 34px;
+		height: 34px;
+		border-width: 3px;
+	}
+
 	&.blue {
 		border-color: var(--color-blue-highlight);
 	}

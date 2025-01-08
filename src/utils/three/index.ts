@@ -1,5 +1,4 @@
 export * from './align-object'
 export * from './camera-utils'
 export * from './dispose-utils'
-export * from './ifc-loader'
 export * from './meshes-utils'

@@ -8,7 +8,6 @@ describe('load-ifc', () => {
 	it('should load the file', async () => {
 		const ifcFilePath = path.resolve('public/test/castle.ifc')
 		const wasmFilePath = path.resolve('public/wasm/')
-		console.log('it | wasmFilePath:', wasmFilePath)
 
 		let bytes = new Uint8Array()
 

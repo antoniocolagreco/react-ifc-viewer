@@ -33,11 +33,11 @@ import {
 	loadIfcProperties,
 	processIfcData,
 	restoreData,
-	setElementToHidden,
-	setElementToHoveredMaterial,
-	setElementToOriginalMaterial,
-	setElementToSelectedMaterial,
-	setElementToTransparentMaterial,
+	setMaterialToDefault,
+	setMaterialToHidden,
+	setMaterialToHovered,
+	setMaterialToSelected,
+	setMaterialToTransparent,
 	transformViewportPositionToScreenPosition,
 } from '@/utils'
 import clsx from 'clsx'
@@ -101,8 +101,8 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 		url,
 		data,
 
-		hoverColor = 0x00498a,
-		selectedColor = 0x16a34a,
+		hoverColor,
+		selectedColor,
 
 		onLoad,
 
@@ -183,8 +183,8 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 
 	const processIfcMarker = useCallback((ifcMarkerElement: ReactElement<IfcOverlayProps>): IfcMarkerLink[] => {
 		const newMarkerLinks: IfcMarkerLink[] = []
-		const content = ifcMarkerElement.props.children
 		const markerRequirements = ifcMarkerElement.props.requirements
+		const props = ifcMarkerElement.props
 
 		const ifcElements = filterIfcElementsByPropertiesAndType(
 			modelRef.current,
@@ -193,7 +193,7 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 		)
 
 		for (const element of ifcElements) {
-			newMarkerLinks.push({ element: element, content })
+			newMarkerLinks.push({ element, props })
 		}
 		return newMarkerLinks
 	}, [])
@@ -230,7 +230,8 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 		const ifcMarkerLinks = ifcMarkerLinksRef.current
 
 		for (const ifcMarkerLink of ifcMarkerLinks) {
-			const { element, content } = ifcMarkerLink
+			const { element, props } = ifcMarkerLink
+
 			const ifcElement3dPosition = getGroupPosition(element)
 			const position = transformViewportPositionToScreenPosition(
 				cameraRef.current,
@@ -239,8 +240,19 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 			)
 
 			newAnchors.push(
-				<IfcAnchor key={ifcMarkerLinks.indexOf(ifcMarkerLink)} position={position}>
-					{content}
+				<IfcAnchor
+					key={ifcMarkerLinks.indexOf(ifcMarkerLink)}
+					position={position}
+					onSelect={() => {
+						if (!props.onSelect) return
+						props.onSelect(element)
+					}}
+					onHover={() => {
+						if (!props.onHover) return
+						props.onHover(element)
+					}}
+				>
+					{props.children}
 				</IfcAnchor>,
 			)
 		}
@@ -306,28 +318,28 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 	const updateMeshDisplay = useCallback(
 		(ifcElement: IfcElement) => {
 			if (ifcElement === selectedIfcElementRef.current) {
-				setElementToSelectedMaterial(ifcElement, modelRef.current, selectedColor)
+				setMaterialToSelected(ifcElement, modelRef.current, selectedColor)
 			} else if (ifcElement === hoveredIfcElementRef.current) {
-				setElementToHoveredMaterial(ifcElement, modelRef.current, hoverColor)
+				setMaterialToHovered(ifcElement, modelRef.current, hoverColor)
 			} else {
 				switch (viewModeRef.current) {
 					case 'VIEW_MODE_ALL': {
-						setElementToOriginalMaterial(ifcElement, modelRef.current)
+						setMaterialToDefault(ifcElement, modelRef.current)
 						break
 					}
 					case 'VIEW_MODE_TRANSPARENT': {
 						if (ifcElement.userData.alwaysVisible) {
-							setElementToOriginalMaterial(ifcElement, modelRef.current)
+							setMaterialToDefault(ifcElement, modelRef.current)
 						} else {
-							setElementToTransparentMaterial(ifcElement, modelRef.current)
+							setMaterialToTransparent(ifcElement, modelRef.current)
 						}
 						break
 					}
 					case 'VIEW_MODE_SELECTABLE': {
 						if (ifcElement.userData.alwaysVisible) {
-							setElementToOriginalMaterial(ifcElement, modelRef.current)
+							setMaterialToDefault(ifcElement, modelRef.current)
 						} else {
-							setElementToHidden(ifcElement)
+							setMaterialToHidden(ifcElement)
 						}
 						break
 					}
@@ -368,13 +380,6 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 			updateBoundingSphere()
 			switchSelectedMesh()
 			renderScene()
-
-			console.log(
-				'IfcViewer | selectedifcElementRef.current:',
-				selectedIfcElementRef.current?.userData.name,
-				selectedIfcElementRef.current?.userData.type,
-				selectedIfcElementRef.current?.userData.properties,
-			)
 
 			if (onMeshSelect) {
 				onMeshSelect(ifcElement)
@@ -472,7 +477,6 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 
 			const firstIntersectedMesh = selectableIntersectionsRef.current.at(0)?.object
 			const ifcElement = firstIntersectedMesh?.getifcElement()
-			console.log('IfcViewer | ifcElement:', ifcElement)
 
 			if (selectableRequirements && selectableRequirements.length > 0 && !ifcElement?.isSelectable()) {
 				select()

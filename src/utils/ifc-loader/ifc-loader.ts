@@ -1,8 +1,7 @@
 import { IfcModel } from '@/classes'
 import type { IfcElementData, ProgressStatus } from '@/types'
-import { getIfcElementTypeAndProperties } from '@/utils'
+import { buildifcElement, getIfcElementTypeAndProperties } from '@/utils'
 import { IfcAPI, LogLevel } from 'web-ifc'
-import { buildifcElement } from '../meshes-utils/meshes-utils'
 
 type WasmPathType = { path: string; absolute?: boolean }
 

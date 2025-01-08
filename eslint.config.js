@@ -46,6 +46,14 @@ const config = tseslint.config({
 		'unicorn/numeric-separators-style': 'off',
 		'unicorn/no-null': 'off',
 		'@typescript-eslint/no-unnecessary-condition': ['error', { allowConstantLoopConditions: true }],
+		'no-useless-rename': [
+			'error',
+			{
+				ignoreDestructuring: false,
+				ignoreImport: false,
+				ignoreExport: false,
+			},
+		],
 	},
 	settings: {
 		react: {

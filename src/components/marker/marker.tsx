@@ -2,11 +2,13 @@ import clsx from 'clsx'
 import { type ComponentPropsWithRef, type FC } from 'react'
 import './marker.css'
 
-type MarkerProps = ComponentPropsWithRef<'button'>
+type MarkerProps = ComponentPropsWithRef<'div'> & {
+	hoverEffect?: boolean
+}
 
 const Marker: FC<MarkerProps> = props => {
-	const { className, ...rest } = props
-	return <button className={clsx('marker', 'gray', className)} {...rest} />
+	const { className, hoverEffect, ...rest } = props
+	return <div className={clsx('marker', { hoverEffect }, className)} {...rest} />
 }
 
 const GreenMarker: FC<MarkerProps> = props => <Marker className={clsx('green')} {...props} />

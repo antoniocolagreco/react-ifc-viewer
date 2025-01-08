@@ -1,7 +1,20 @@
 .ifc-viewer {
 	& .ifc-anchor {
 		position: absolute;
+		padding: 0;
+		margin: 0;
+		border: none;
+		background: none;
+		font: inherit;
+		color: inherit;
+		line-height: normal;
+		-webkit-appearance: none;
+		-moz-appearance: none;
+		appearance: none;
 
+		&.hoverEffect:hover {
+			cursor: pointer;
+		}
 		& > * {
 			position: absolute;
 			transform: translate(-50%, -50%);

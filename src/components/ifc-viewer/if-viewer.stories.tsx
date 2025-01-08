@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react'
 import { IfcControls } from '../ifc-controls/ifc-controls'
 import { IfcOverlay } from '../ifc-overlay'
-import { GreenMarker, RedMarker } from '../marker'
+import { GreenMarker } from '../marker'
 import { IfcViewer, type IfcViewerProps } from './ifc-viewer'
 
 const meta: Meta<typeof IfcViewer> = {
@@ -22,26 +22,24 @@ const defaultProps: IfcViewerProps = {
 	enableMeshSelection: true,
 	style: { minHeight: '480px' },
 	links: [],
-	// selectable: [{ requiredType: 'IfcDistributionControlElement' }],
-	// alwaysVisible: [{ requiredType: 'IfcDistributionControlElement' }],
+	selectable: [{ requiredType: 'IfcDistributionControlElement' }],
+	alwaysVisible: [{ requiredType: 'IfcDistributionControlElement' }],
 	children: (
 		<>
 			<IfcOverlay
 				requirements={{
 					requiredType: 'IfcDistributionControlElement',
-					requiredProperties: [{ name: 'Contrassegno', value: '3' }],
+					requiredProperties: [{ name: 'Contrassegno' }],
+				}}
+				onSelect={ifcElement => {
+					console.log(ifcElement)
 				}}
 			>
-				<GreenMarker style={{ pointerEvents: 'none' }} />
+				<GreenMarker hoverEffect />
 			</IfcOverlay>
-			<IfcOverlay
-				requirements={{
-					requiredType: 'IfcDistributionControlElement',
-					requiredProperties: [{ name: 'Contrassegno', value: '4' }],
-				}}
-			>
+			{/* <IfcOverlay requirements={filterB}>
 				<RedMarker style={{ pointerEvents: 'none' }} />
-			</IfcOverlay>
+			</IfcOverlay> */}
 			<IfcControls />
 		</>
 	),

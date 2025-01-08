@@ -1,4 +1,5 @@
 import type { IfcElement } from '@/classes'
+import type { IfcOverlayProps } from '@/components'
 import type { ReactNode } from 'react'
 import { type BufferGeometry, type Mesh, type MeshLambertMaterial, type ShaderMaterial } from 'three'
 
@@ -47,7 +48,10 @@ type SelectableRequirements = Requirements & { linkRequirements?: LinkRequiremen
 type MarkerRequirements = Requirements & { children: ReactNode }
 type LinkRequirements = Requirements & { linkPropertyName: string }
 
-type IfcMarkerLink = { element: IfcElement; content: ReactNode }
+type IfcMarkerLink = {
+	element: IfcElement
+	props: IfcOverlayProps
+}
 
 type GeometryId = string
 type MaterialId = string
