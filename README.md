@@ -68,5 +68,3 @@ Below is an example demonstrating how to use the viewer:
 	<IfcControls />
 </IfcViewer>
 ```
-
----
