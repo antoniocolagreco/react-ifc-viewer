@@ -1,12 +1,20 @@
+import type { IfcElement, IfcModel } from '@/classes'
 import type { ViewMode } from '@/components/ifc-viewer/types'
+import type { Property } from '@/types'
 
 type GlobalStateData = {
-	commands: {
+	viewPort: {
 		focusView: (expressID?: number) => void
 		fitView: (expressID?: number) => void
 		resetView: () => void
 		changeViewMode: (viewMode?: ViewMode) => void
 	}
+	model: IfcModel | undefined
+	selectableElements: IfcElement[]
+	selectByProperty: (property: Property) => void
+	selectByExpressId: (expressId: number | undefined) => void
+	updateAnchors: () => void
+	renderScene: () => void
 }
 
 type GlobalState = {
@@ -23,12 +31,18 @@ type GlobalState = {
 
 const globalState: GlobalState = {
 	currentState: {
-		commands: {
+		viewPort: {
 			focusView: () => {},
 			fitView: () => {},
 			resetView: () => {},
 			changeViewMode: () => {},
 		},
+		model: undefined,
+		selectableElements: [],
+		selectByProperty: () => {},
+		selectByExpressId: () => {},
+		updateAnchors: () => {},
+		renderScene: () => {},
 	},
 	listeners: [],
 

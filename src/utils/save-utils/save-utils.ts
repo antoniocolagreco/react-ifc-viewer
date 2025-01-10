@@ -1,6 +1,7 @@
 import type { IfcModel } from '@/classes'
-import { IfcDataLoadingError } from '@/errors'
-import type { ExpressId, IfcElementData } from '@/types'
+import type { IfcElementData } from '@/types'
+
+type IfcElementDataRecord = Record<number, Omit<IfcElementData, 'expressId'>>
 
 /**
  * Extracts and returns a record of IFC element data to be saved from the given IFC model.
@@ -8,13 +9,18 @@ import type { ExpressId, IfcElementData } from '@/types'
  * @param ifcModel - The IFC model containing elements to be processed.
  * @returns A record where the keys are Express IDs and the values are the corresponding IFC element data.
  */
-const getDataToSave = (ifcModel: IfcModel): Record<ExpressId, IfcElementData> => {
-	const meshesToSave = ifcModel.children.filter(
-		ifcElement => ifcElement.isAlwaysVisible() || ifcElement.isSelectable(),
+const extractDataToSave = (ifcElementsData: IfcElementData[], keepProperties = false): IfcElementDataRecord => {
+	const ifcElementsDataToSave = ifcElementsData.filter(
+		ifcElement => ifcElement.alwaysVisible || ifcElement.selectable,
 	)
-	const saveData: Record<ExpressId, IfcElementData> = {}
-	for (const ifcElement of meshesToSave) {
-		saveData[ifcElement.userData.expressId] = ifcElement.userData
+	const saveData: IfcElementDataRecord = {}
+	for (const ifcElementData of ifcElementsDataToSave) {
+		const { expressId, properties, ...rest } = ifcElementData
+		const dataToSave: Omit<IfcElementData, 'expressId'> = { ...rest }
+		if (keepProperties) {
+			dataToSave.properties = properties
+		}
+		saveData[expressId] = dataToSave
 	}
 	return saveData
 }
@@ -26,14 +32,14 @@ const getDataToSave = (ifcModel: IfcModel): Record<ExpressId, IfcElementData> =>
  * @param savedData - An array of saved data objects to restore the IFC elements' user data.
  * @throws IfcDataLoadingError - Throws an error if no matching saved data is found for an IFC element.
  */
-const restoreData = (ifcModel: IfcModel, savedData: IfcElementData[]): void => {
+const restoreDataToIfcModel = (ifcModel: IfcModel, savedData: IfcElementDataRecord): void => {
 	for (const ifcElement of ifcModel.children) {
-		const data = savedData.find(savedItem => savedItem.expressId === ifcElement.userData.expressId)
+		const data = savedData[ifcElement.userData.expressId]
 		if (!data) {
-			throw new IfcDataLoadingError(ifcElement.userData.expressId)
+			continue
 		}
-		ifcElement.userData = data
+		ifcElement.userData = { ...ifcElement.userData, ...data }
 	}
 }
 
-export { getDataToSave, restoreData }
+export { extractDataToSave, restoreDataToIfcModel }

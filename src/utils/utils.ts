@@ -7,4 +7,11 @@ const isRunningInBrowser = () => {
 	return true
 }
 
-export { isRunningInBrowser }
+const getPercetage = (value?: number, total?: number) => {
+	if (value && total) {
+		return `${String(Math.round((value / total) * 100))}%`
+	}
+	return '0%'
+}
+
+export { getPercetage, isRunningInBrowser }

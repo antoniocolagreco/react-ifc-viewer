@@ -178,7 +178,7 @@ const matchPropertiesAndType = (
 	type?: string,
 ): boolean => {
 	// Controlla se l'oggetto ha delle proprietà utente
-	if (!ifcElementData.properties) return false
+	if (!ifcElementData.properties && !ifcElementData.values) return false
 
 	// Controlla se il tipo dell'oggetto corrisponde al tipo specificato (se fornito)
 	if (type && ifcElementData.type !== type) return false
@@ -186,11 +186,15 @@ const matchPropertiesAndType = (
 	// Itera su ciascuna proprietà da trovare
 	for (const propertyToFind of propertiesToFind) {
 		// Controlla se l'oggetto ha la proprietà specificata
-		const valid = matchProperty(ifcElementData, propertyToFind)
-		if (!valid) return false
+		const foundProperty = findPropertyInIfcData(ifcElementData, propertyToFind)
+		if (!foundProperty) return false
+		if (!ifcElementData.values) {
+			ifcElementData.values = {}
+		}
+		ifcElementData.values[foundProperty.name] = foundProperty.value
 	}
-
 	// Se tutte le proprietà corrispondono, ritorna true
+
 	return true
 }
 
@@ -206,11 +210,29 @@ const matchPropertiesAndType = (
  * - If only the property value is provided, it checks if any property value matches.
  * - If both the property name and value are provided, it checks if both match.
  */
-const matchProperty = (ifcElementData: IfcElementData, propertyToFind: Property): boolean => {
-	const nameToFind = propertyToFind.name
+const findPropertyInIfcData = (ifcElementData: IfcElementData, propertyToFind: Property): Property | undefined => {
+	const keyToFind = propertyToFind.name
 	const valueToFind = propertyToFind.value
 
-	if (!ifcElementData.properties) return false
+	// La funziona prima controlla se il record è già stato elaborato in passate ed è presente in values
+	// In tal caso, restituisce il valore corrispondente skipando il controllo delle proprietà
+	const { values } = ifcElementData
+	if (values) {
+		for (const [name, value] of Object.entries(values)) {
+			if (name === keyToFind) {
+				if (valueToFind) {
+					if (valueToFind === value) {
+						return { name, value }
+					}
+				} else {
+					return { name, value }
+				}
+			}
+		}
+	}
+
+	// Controlla se l'oggetto ha delle proprietà utente
+	if (!ifcElementData.properties) return undefined
 
 	// Itera su ciascun set di proprietà nell'oggetto
 	for (const propertySet of ifcElementData.properties) {
@@ -219,29 +241,29 @@ const matchProperty = (ifcElementData: IfcElementData, propertyToFind: Property)
 			const propertyValueAsString = String(property.value)
 
 			// Controlla se solo il nome della proprietà corrisponde
-			if (!valueToFind && nameToFind && isPropertyEqual(property.name, nameToFind, false)) {
-				return true
+			if (!valueToFind && keyToFind && isPropertyEqual(property.name, keyToFind, false)) {
+				return { name: property.name, value: property.value }
 			}
 
 			// Controlla se solo il valore della proprietà corrisponde
-			if (valueToFind && !nameToFind && isPropertyEqual(propertyValueAsString, valueToFind)) {
-				return true
+			if (valueToFind && !keyToFind && isPropertyEqual(propertyValueAsString, valueToFind)) {
+				return { name: property.name, value: property.value }
 			}
 
 			// Controlla se sia il nome che il valore della proprietà corrispondono
 			if (
 				valueToFind &&
-				nameToFind &&
-				isPropertyEqual(property.name, nameToFind, false) &&
+				keyToFind &&
+				isPropertyEqual(property.name, keyToFind, false) &&
 				isPropertyEqual(propertyValueAsString, valueToFind)
 			) {
-				return true
+				return { name: property.name, value: property.value }
 			}
 		}
 	}
 
 	// Se nessuna proprietà corrisponde, ritorna false
-	return false
+	return undefined
 }
 
 /**
@@ -473,13 +495,13 @@ const processIfcData = (
 	selectableRequirements?: SelectableRequirements[],
 	alwaysVisibleRequirements?: Requirements[],
 ) => {
-	if (linkRequirements) {
+	if (linkRequirements && linkRequirements.length > 0) {
 		setIfcDataLinks(ifcElementData, allIfcElementsData, linkRequirements)
 	}
-	if (selectableRequirements) {
+	if (selectableRequirements && selectableRequirements.length > 0) {
 		setIfcDataItemSelectable(ifcElementData, allIfcElementsData, selectableRequirements)
 	}
-	if (alwaysVisibleRequirements) {
+	if (alwaysVisibleRequirements && alwaysVisibleRequirements.length > 0) {
 		setIfcDataAlwaysVisible(ifcElementData, alwaysVisibleRequirements)
 	}
 }

@@ -9,7 +9,7 @@ type LoadIfcFunctionType = (
 	ifcBuffer: Uint8Array,
 	onLoad: (ifcModel: IfcModel) => void,
 	onError: (error: Error) => void,
-	wasmPath?: WasmPathType,
+	options?: { wasmPath?: WasmPathType },
 ) => Promise<void>
 
 const defaultWasmPath: WasmPathType = {
@@ -17,7 +17,9 @@ const defaultWasmPath: WasmPathType = {
 	absolute: true,
 }
 
-const loadIfcModel: LoadIfcFunctionType = async (ifcBuffer, onLoad, onError, wasmPath = defaultWasmPath) => {
+const loadIfcModel: LoadIfcFunctionType = async (ifcBuffer, onLoad, onError, options) => {
+	const wasmPath = options?.wasmPath ?? defaultWasmPath
+
 	const ifcAPI = new IfcAPI()
 	const ifcModel = new IfcModel()
 
@@ -51,19 +53,19 @@ type LoadIfcDataType = (
 	onLoad: (data: IfcElementData[]) => void,
 	onProgress: (status: ProgressStatus) => void,
 	onError: (error: Error) => void,
+	options?: {
+		wasmPath?: WasmPathType
+	},
 ) => Promise<void>
 
-const loadIfcProperties: LoadIfcDataType = async (ifcBuffer: Uint8Array, onLoad, onProgress, onError) => {
+const loadIfcProperties: LoadIfcDataType = async (ifcBuffer, onLoad, onProgress, onError, options) => {
+	const wasmPath = options?.wasmPath ?? defaultWasmPath
+
 	const ifcAPI = new IfcAPI()
 
 	let modelID = -1
 
 	try {
-		const wasmPath = {
-			path: `${location.origin}${import.meta.env.BASE_URL}wasm/`,
-			absolute: true,
-		}
-
 		ifcAPI.SetWasmPath(wasmPath.path, wasmPath.absolute)
 
 		await ifcAPI.Init()
@@ -107,4 +109,4 @@ const loadIfcProperties: LoadIfcDataType = async (ifcBuffer: Uint8Array, onLoad,
 	}
 }
 
-export { loadIfcModel, loadIfcProperties }
+export { loadIfcModel, loadIfcProperties, type WasmPathType }

@@ -1,7 +1,8 @@
+import type { IfcElementData } from '@/types'
 import type { Meta, StoryObj } from '@storybook/react'
 import { IfcControls } from '../ifc-controls/ifc-controls'
+import { IfcGreenMarker } from '../ifc-marker'
 import { IfcOverlay } from '../ifc-overlay'
-import { GreenMarker } from '../marker'
 import { IfcViewer, type IfcViewerProps } from './ifc-viewer'
 
 const meta: Meta<typeof IfcViewer> = {
@@ -35,7 +36,7 @@ const defaultProps: IfcViewerProps = {
 					console.log(ifcElement)
 				}}
 			>
-				<GreenMarker hoverEffect />
+				<IfcGreenMarker hoverEffect />
 			</IfcOverlay>
 			{/* <IfcOverlay requirements={filterB}>
 				<RedMarker style={{ pointerEvents: 'none' }} />
@@ -45,8 +46,68 @@ const defaultProps: IfcViewerProps = {
 	),
 }
 
+const dataString = `
+{
+  "47596": {
+    "expressId": 47596,
+    "type": "IfcDistributionControlElement",
+    "name": "Accelerometro OnBoard - adxl354_adxl355:Tipo 1:293740",
+    "values": {
+      "Contrassegno": "1"
+    },
+    "selectable": true
+  },
+  "47639": {
+    "expressId": 47639,
+    "type": "IfcDistributionControlElement",
+    "name": "Accelerometro OnBoard - adxl354_adxl355:Tipo 1:293743",
+    "values": {
+      "Contrassegno": "2"
+    },
+    "selectable": true
+  },
+  "47665": {
+    "expressId": 47665,
+    "type": "IfcDistributionControlElement",
+    "name": "Accelerometro OnBoard - adxl354_adxl355:Tipo 1:296289",
+    "values": {
+      "Contrassegno": "3"
+    },
+    "selectable": true
+  },
+  "47691": {
+    "expressId": 47691,
+    "type": "IfcDistributionControlElement",
+    "name": "Accelerometro OnBoard - adxl354_adxl355:Tipo 1:296291",
+    "values": {
+      "Contrassegno": "4"
+    },
+    "selectable": true
+  },
+  "47731": {
+    "expressId": 47731,
+    "type": "IfcDistributionControlElement",
+    "name": "Accelerometro esterno:Tipo 1:297914",
+    "values": {
+      "Contrassegno": "5"
+    },
+    "selectable": true
+  },
+  "47791": {
+    "expressId": 47791,
+    "type": "IfcDistributionControlElement",
+    "name": "Clinometro di superficie:Tipo 1:298739",
+    "values": {
+      "Contrassegno": "6"
+    },
+    "selectable": true
+  }
+}
+`
+
 export const DefaultViewer: Story = {
 	args: {
 		...defaultProps,
+		data: JSON.parse(dataString) as IfcElementData[],
 	},
 }

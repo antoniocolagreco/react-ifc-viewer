@@ -11,6 +11,7 @@ type IfcElementData = {
 	name?: string | undefined
 	properties?: PropertySet[] | undefined
 	links?: IfcLink
+	values?: Record<string, PropertyValue>
 	selectable?: boolean | undefined
 	alwaysVisible?: boolean | undefined
 }

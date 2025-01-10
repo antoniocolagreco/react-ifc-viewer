@@ -1,5 +1,5 @@
 'use client'
-import { useIfcViewerCommands } from '@/hooks/use-ifc-viewer-commands'
+import { useIfcViewer } from '@/hooks/use-ifc-viewer'
 import clsx from 'clsx'
 import { type ComponentPropsWithRef, type FC } from 'react'
 import { IfcButton } from '../ifc-button'
@@ -9,7 +9,9 @@ type IfcControlsProps = ComponentPropsWithRef<'div'>
 
 const IfcControls: FC<IfcControlsProps> = props => {
 	const { className, ...rest } = props
-	const { changeViewMode, fitView, focusView, resetView } = useIfcViewerCommands()
+	const {
+		viewPort: { changeViewMode, fitView, focusView, resetView },
+	} = useIfcViewer()
 	return (
 		<div className={clsx('ifc-controls', className)} {...rest}>
 			<IfcButton

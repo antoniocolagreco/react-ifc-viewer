@@ -1,3 +1,4 @@
 export * from './ifc-controls'
 export * from './ifc-overlay'
 export * from './ifc-viewer'
+export * from './ifc-marker'

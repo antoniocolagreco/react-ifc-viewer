@@ -1,13 +1,13 @@
 'use client'
 
-import { Grid } from '@/3d-components'
+import { Grid } from '@/3d-components/grid'
 import type { IfcElement } from '@/classes'
 import { IfcMesh, IfcModel } from '@/classes'
 import { IfcAnchor, type IfcAnchorProps } from '@/components/ifc-anchor'
 import { type IfcOverlayProps } from '@/components/ifc-overlay'
 import { ProgressBar } from '@/components/progress-bar'
 import { IFCViewerLoadingMessages } from '@/costants'
-import { useGlobalState } from '@/hooks'
+import { useGlobalState } from '@/hooks/use-global-state'
 import type {
 	IfcElementData,
 	IfcMarkerLink,
@@ -32,7 +32,7 @@ import {
 	loadIfcModel,
 	loadIfcProperties,
 	processIfcData,
-	restoreData,
+	restoreDataToIfcModel,
 	setMaterialToDefault,
 	setMaterialToHidden,
 	setMaterialToHovered,
@@ -67,7 +67,7 @@ import {
 } from 'three'
 import { OrbitControls } from 'three/examples/jsm/Addons.js'
 import './ifc-viewer.css'
-import type { LoadingStatus, MouseState, On3DModelLoadedType, ViewMode } from './types'
+import type { LoadingStatus, MouseState, ViewMode } from './types'
 
 const LAYER_MESHES = 0
 const LAYER_HELPERS = 29
@@ -76,10 +76,10 @@ type IfcViewerProps = ComponentPropsWithRef<'div'> & {
 	url: string
 	data?: IfcElementData[]
 
+	onLoad?: () => void
+
 	hoverColor?: number
 	selectedColor?: number
-
-	onLoad?: On3DModelLoadedType
 
 	links?: LinkRequirements[]
 	selectable?: SelectableRequirements[]
@@ -222,66 +222,6 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 		setIfcViewerChildren(newChildren)
 	}, [children, processIfcMarker])
 
-	const updateAnchors = useCallback(() => {
-		if (!cameraRef.current || !rendererRef.current) {
-			return
-		}
-		const newAnchors: ReactElement<IfcAnchorProps>[] = []
-		const ifcMarkerLinks = ifcMarkerLinksRef.current
-
-		for (const ifcMarkerLink of ifcMarkerLinks) {
-			const { element, props } = ifcMarkerLink
-
-			const ifcElement3dPosition = getGroupPosition(element)
-			const position = transformViewportPositionToScreenPosition(
-				cameraRef.current,
-				rendererRef.current,
-				ifcElement3dPosition,
-			)
-
-			newAnchors.push(
-				<IfcAnchor
-					key={ifcMarkerLinks.indexOf(ifcMarkerLink)}
-					position={position}
-					onSelect={() => {
-						if (!props.onSelect) return
-						props.onSelect(element)
-					}}
-					onHover={() => {
-						if (!props.onHover) return
-						props.onHover(element)
-					}}
-				>
-					{props.children}
-				</IfcAnchor>,
-			)
-		}
-		setIfcAnchors(newAnchors)
-	}, [])
-
-	const renderScene = useCallback((): void => {
-		if (!containerRef.current || !rendererRef.current || !cameraRef.current || !controlsRef.current) {
-			return
-		}
-
-		const width = containerRef.current.clientWidth
-		const height = containerRef.current.clientHeight
-		cameraRef.current.aspect = width / height
-		cameraRef.current.updateProjectionMatrix()
-		rendererRef.current.setSize(width, height)
-		controlsRef.current.update()
-		rendererRef.current.render(sceneRef.current, cameraRef.current)
-
-		updateAnchors()
-	}, [updateAnchors])
-
-	useEffect(() => {
-		if (loadingProgress.status === 'READY') {
-			processChildren()
-			renderScene()
-		}
-	}, [loadingProgress.status, processChildren, renderScene])
-
 	const resetScene = (): void => {
 		disposeObjects(sceneRef.current)
 		sceneRef.current.children.length = 0
@@ -328,7 +268,7 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 						break
 					}
 					case 'VIEW_MODE_TRANSPARENT': {
-						if (ifcElement.userData.alwaysVisible) {
+						if (ifcElement.userData.alwaysVisible || ifcElement.userData.selectable) {
 							setMaterialToDefault(ifcElement, modelRef.current)
 						} else {
 							setMaterialToTransparent(ifcElement, modelRef.current)
@@ -336,7 +276,7 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 						break
 					}
 					case 'VIEW_MODE_SELECTABLE': {
-						if (ifcElement.userData.alwaysVisible) {
+						if (ifcElement.userData.alwaysVisible || ifcElement.userData.selectable) {
 							setMaterialToDefault(ifcElement, modelRef.current)
 						} else {
 							setMaterialToHidden(ifcElement)
@@ -354,6 +294,20 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 			updateMeshDisplay(ifcElement)
 		}
 	}, [updateMeshDisplay])
+
+	const renderScene = useCallback((): void => {
+		if (!containerRef.current || !rendererRef.current || !cameraRef.current || !controlsRef.current) {
+			return
+		}
+
+		const width = containerRef.current.clientWidth
+		const height = containerRef.current.clientHeight
+		cameraRef.current.aspect = width / height
+		cameraRef.current.updateProjectionMatrix()
+		rendererRef.current.setSize(width, height)
+		controlsRef.current.update()
+		rendererRef.current.render(sceneRef.current, cameraRef.current)
+	}, [])
 
 	const switchSelectedMesh = useCallback(() => {
 		if (previousSelectedIfcElementRef.current) {
@@ -385,7 +339,7 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 				onMeshSelect(ifcElement)
 			}
 		},
-		[onMeshSelect, updateBoundingSphere, switchSelectedMesh, renderScene],
+		[updateBoundingSphere, switchSelectedMesh, renderScene, onMeshSelect],
 	)
 
 	const hover = useCallback(
@@ -408,6 +362,53 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 		},
 		[onMeshHover, switchHoveredMesh, renderScene],
 	)
+
+	const updateAnchors = useCallback(() => {
+		if (!cameraRef.current || !rendererRef.current) {
+			return
+		}
+		const newAnchors: ReactElement<IfcAnchorProps>[] = []
+		const ifcMarkerLinks = ifcMarkerLinksRef.current
+
+		for (const ifcMarkerLink of ifcMarkerLinks) {
+			const { element, props } = ifcMarkerLink
+
+			const ifcElement3dPosition = getGroupPosition(element)
+			const position = transformViewportPositionToScreenPosition(
+				cameraRef.current,
+				rendererRef.current,
+				ifcElement3dPosition,
+			)
+
+			newAnchors.push(
+				<IfcAnchor
+					key={ifcMarkerLinks.indexOf(ifcMarkerLink)}
+					position={position}
+					onSelect={() => {
+						select(element)
+						if (!props.onSelect) return
+						props.onSelect(element.userData)
+					}}
+					onHover={() => {
+						hover(element)
+						if (!props.onHover) return
+						props.onHover(element.userData)
+					}}
+				>
+					{props.children}
+				</IfcAnchor>,
+			)
+		}
+		setIfcAnchors(newAnchors)
+	}, [hover, select])
+
+	useEffect(() => {
+		if (loadingProgress.status === 'READY') {
+			processChildren()
+			renderScene()
+			updateAnchors()
+		}
+	}, [loadingProgress.status, processChildren, renderScene, updateAnchors])
 
 	const updateMousePointer = (event: MouseEvent): void => {
 		if (!canvasRef.current) throw new Error('Canvas not loaded')
@@ -485,8 +486,9 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 
 			select(ifcElement)
 			renderScene()
+			updateAnchors()
 		},
-		[enableMeshSelection, updateIntersections, selectableRequirements, select, renderScene],
+		[enableMeshSelection, updateIntersections, selectableRequirements, select, renderScene, updateAnchors],
 	)
 
 	const handleMouseMove = useCallback(
@@ -525,7 +527,8 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 		}
 		fitBoundingSphere(boundingSphereRef.current, cameraRef.current, controlsRef.current)
 		renderScene()
-	}, [renderScene])
+		updateAnchors()
+	}, [renderScene, updateAnchors])
 
 	const focusView = useCallback((): void => {
 		if (!boundingSphereRef.current) return
@@ -534,7 +537,8 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 		}
 		controlsRef.current.target.copy(boundingSphereRef.current.center)
 		renderScene()
-	}, [renderScene])
+		updateAnchors()
+	}, [renderScene, updateAnchors])
 
 	const resetView = useCallback(() => {
 		if (!cameraRef.current || !controlsRef.current) {
@@ -547,7 +551,8 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 			fitBoundingSphere(boundingSphereRef.current, cameraRef.current, controlsRef.current)
 		}
 		renderScene()
-	}, [select, updateBoundingSphere, renderScene])
+		updateAnchors()
+	}, [select, updateBoundingSphere, renderScene, updateAnchors])
 
 	const selectByExpressId = useCallback(
 		(expressId: number | undefined): void => {
@@ -649,6 +654,7 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 
 		resizeObserverRef.current = new ResizeObserver(() => {
 			renderScene()
+			updateAnchors()
 		})
 		resizeObserverRef.current.observe(containerRef.current)
 
@@ -657,13 +663,14 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 		const animate = (): void => {
 			if (renderingEnabledRef.current) {
 				renderScene()
+				updateAnchors()
 			}
 			animationFrameIdRef.current = requestAnimationFrame(animate)
 		}
 		animate()
 
 		setLoadingProgress({ status: 'READY', loaded: 1, total: 1 })
-	}, [renderScene])
+	}, [renderScene, updateAnchors])
 
 	const unloadEverything = useCallback((): void => {
 		disposeObjects(sceneRef.current)
@@ -771,15 +778,10 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 		}
 
 		setLoadingProgress({ status: 'RESTORING_DATA_PROGRESS' })
-		restoreData(modelRef.current, ifcModelItemsData)
+		restoreDataToIfcModel(modelRef.current, ifcModelItemsData)
 
 		if (onLoad) {
-			onLoad({
-				model: modelRef.current,
-				selectableItems: modelRef.current.children.filter(ifcElement => ifcElement.userData.selectable),
-				selectByExpressId,
-				selectByProperty,
-			})
+			onLoad()
 		}
 
 		setLoadingProgress({ status: 'READY' })
@@ -788,12 +790,10 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 		data,
 		linksRequirements,
 		onLoad,
-		selectByExpressId,
-		selectByProperty,
+		renderScene,
 		selectableRequirements,
 		updateBoundingSphere,
 		url,
-		renderScene,
 	])
 
 	useEffect(() => {
@@ -805,19 +805,38 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 		void loadFile()
 
 		setGlobalState({
-			commands: {
+			viewPort: {
 				focusView,
 				fitView,
 				resetView,
 				changeViewMode,
 			},
+			model: modelRef.current,
+			selectableElements: modelRef.current.children.filter(ifcElement => ifcElement.userData.selectable),
+			selectByProperty,
+			selectByExpressId,
+			renderScene,
+			updateAnchors,
 		})
 
 		return () => {
 			unloadEverything()
 			resizeObserverRef.current?.disconnect()
 		}
-	}, [changeViewMode, fitView, focusView, init, loadFile, resetView, setGlobalState, unloadEverything])
+	}, [
+		changeViewMode,
+		fitView,
+		focusView,
+		init,
+		loadFile,
+		renderScene,
+		resetView,
+		selectByExpressId,
+		selectByProperty,
+		setGlobalState,
+		unloadEverything,
+		updateAnchors,
+	])
 
 	return (
 		<div className={clsx('ifc-viewer', className)} ref={containerRef} {...otherProps}>
@@ -834,7 +853,7 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 			{loadingProgress.status !== 'READY' && (
 				<div className="ifc-progress-bar-container">
 					<ProgressBar
-						max={loadingProgress.total ?? 1}
+						max={loadingProgress.total ?? 0}
 						value={loadingProgress.loaded ?? 1}
 						state={loadingProgress.status.toUpperCase().includes('ERROR') ? 'ERROR' : 'LOADING'}
 					>

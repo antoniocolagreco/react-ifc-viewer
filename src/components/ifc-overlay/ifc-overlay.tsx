@@ -1,12 +1,11 @@
-import type { IfcElement } from '@/classes'
-import type { Requirements } from '@/types'
+import type { IfcElementData, Requirements } from '@/types'
 import type { FC, ReactNode } from 'react'
 
 type IfcOverlayProps = {
 	requirements: Requirements
 	children: ReactNode
-	onSelect?: (ifcElement: IfcElement) => void
-	onHover?: (ifcElement: IfcElement) => void
+	onSelect?: (data: IfcElementData) => void
+	onHover?: (data: IfcElementData) => void
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
