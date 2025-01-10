@@ -32,7 +32,7 @@ const basicConfig = defineConfig({
 		cssCodeSplit: true,
 		target: 'esnext',
 		copyPublicDir: false,
-		minify: true,
+		minify: false,
 		lib: {
 			entry: resolve(__dirname, join('src/index.ts')),
 			fileName: 'index',

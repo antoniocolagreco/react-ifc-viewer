@@ -44,6 +44,7 @@ import {
 import clsx from 'clsx'
 import {
 	Children,
+	memo,
 	useCallback,
 	useEffect,
 	useRef,
@@ -183,7 +184,6 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 	}, [ref])
 
 	const processIfcMarker = useCallback((ifcMarkerElement: ReactElement<IfcOverlayProps>): IfcMarkerLink[] => {
-		console.log('processIfcMarker | ifcMarkerElement:', ifcMarkerElement)
 		const newMarkerLinks: IfcMarkerLink[] = []
 		const markerRequirements = ifcMarkerElement.props.requirements
 		const props = ifcMarkerElement.props
@@ -869,4 +869,10 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 	)
 }
 
-export { IfcViewer, type IfcViewerProps }
+const memoizedIfcViewer = memo(IfcViewer, (prevProps, nextProps) => {
+	if (prevProps.url !== nextProps.url) return false
+
+	return true
+})
+
+export { memoizedIfcViewer as IfcViewer, type IfcViewerProps }
