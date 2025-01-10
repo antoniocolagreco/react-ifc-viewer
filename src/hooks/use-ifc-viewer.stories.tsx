@@ -1,5 +1,5 @@
 import type { LinkRequirements, Requirements, SelectableRequirements } from '@/types'
-import { fetchFile, getPercetage, type WasmPathType } from '@/utils'
+import { fetchFile, getPath, getPercetage, type WasmPathType } from '@/utils'
 import type { Meta, StoryObj } from '@storybook/react'
 import { useState, type ComponentPropsWithRef, type FC } from 'react'
 import { useIfcViewer } from './use-ifc-viewer'
@@ -24,7 +24,7 @@ const MockComponent: FC<MockComponentsProps> = props => {
 		let ifcBuffer: Uint8Array = new Uint8Array()
 
 		await fetchFile(
-			`${location.origin}${import.meta.env.BASE_URL}/test/castle.ifc`,
+			`${await getPath()}/test/castle.ifc`,
 			buffer => {
 				ifcBuffer = buffer
 			},

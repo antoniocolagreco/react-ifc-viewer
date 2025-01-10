@@ -18,8 +18,6 @@ Install the library using npm:
 npm install react-ifc-viewer
 ```
 
----
-
 ## Features
 
 - **Selectable Meshes:** You can hover or select meshes, and custom events can be attached to them.
@@ -35,15 +33,11 @@ npm install react-ifc-viewer
 - **Controls:** You can navigate the model using mouse, left click to rotate and right click to move. There is a hook that adds extra functionalities to the viewer, such as focusing the view on selection, fitting and centering the view on selection, and resetting the viewport.
 - **Efficient Rendering:** The scene is rerendered only while interacting with the viewport.
 
----
-
 ## Limitations
 
 - **Performance:** The library’s performance is sufficient for the typical IFC files used by my customer. However, instanced meshes could be implemented for further optimization if needed. When I first started working with this library, I encountered issues with the materials, which led me to avoid using instanced meshes. However, now I am sharing all materials between the meshes when possible to improve performance and I generate new materials when I have to highlight meshes so I can easily switch to instanced meshes in the future.
 - **Maturity:** This library is still in its early stages, and I advise against using it at this time.
 - **Testing:** I have implemented some basic tests for the IFC model and properties loader, as well as a Storybook showcase for the viewer and the hook.
-
----
 
 ## Usage
 
@@ -53,14 +47,14 @@ Below is an example demonstrating how to use the viewer:
 <IfcViewer url="/test/castle.ifc" enableMeshHover enableMeshSelection>
 	<IfcOverlay
 		requirements={{
-			requiredType: 'IfcDistributionControlElement',
-			requiredProperties: [{ name: 'Contrassegno', value: '1' }],
+			type: 'IfcDistributionControlElement',
+			properties: [{ name: 'Contrassegno', value: '1' }],
 		}}
-		onSelect={ifcElement => {
-			console.log(ifcElement)
+		onSelect={data => {
+			console.log(data)
 		}}
-		onHover={ifcElement => {
-			console.log(ifcElement)
+		onHover={data => {
+			console.log(data)
 		}}
 	>
 		<IfcGreenMarker hoverEffect />

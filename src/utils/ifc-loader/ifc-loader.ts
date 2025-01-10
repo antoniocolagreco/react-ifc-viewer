@@ -1,6 +1,6 @@
 import { IfcModel } from '@/classes'
 import type { IfcElementData, ProgressStatus } from '@/types'
-import { buildifcElement, getIfcElementTypeAndProperties } from '@/utils'
+import { buildifcElement, getIfcElementTypeAndProperties, getPath } from '@/utils'
 import { IfcAPI, LogLevel } from 'web-ifc'
 
 type WasmPathType = { path: string; absolute?: boolean }
@@ -12,12 +12,12 @@ type LoadIfcFunctionType = (
 	options?: { wasmPath?: WasmPathType },
 ) => Promise<void>
 
-const defaultWasmPath: WasmPathType = {
-	path: `${location.origin}${import.meta.env.BASE_URL}wasm/`,
-	absolute: true,
-}
-
 const loadIfcModel: LoadIfcFunctionType = async (ifcBuffer, onLoad, onError, options) => {
+	const defaultWasmPath: WasmPathType = {
+		path: `${await getPath()}wasm/`,
+		absolute: true,
+	}
+
 	const wasmPath = options?.wasmPath ?? defaultWasmPath
 
 	const ifcAPI = new IfcAPI()
@@ -59,6 +59,11 @@ type LoadIfcDataType = (
 ) => Promise<void>
 
 const loadIfcProperties: LoadIfcDataType = async (ifcBuffer, onLoad, onProgress, onError, options) => {
+	const defaultWasmPath: WasmPathType = {
+		path: `${await getPath()}wasm/`,
+		absolute: true,
+	}
+
 	const wasmPath = options?.wasmPath ?? defaultWasmPath
 
 	const ifcAPI = new IfcAPI()

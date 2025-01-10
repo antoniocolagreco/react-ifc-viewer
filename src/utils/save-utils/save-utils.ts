@@ -26,13 +26,16 @@ const extractDataToSave = (ifcElementsData: IfcElementData[], keepProperties = f
 }
 
 /**
- * Restores the user data of IFC elements in the given IFC model using the provided saved data.
+ * Restores data to an IFC model from a saved data record.
  *
- * @param ifcModel - The IFC model containing elements whose data needs to be restored.
- * @param savedData - An array of saved data objects to restore the IFC elements' user data.
- * @throws IfcDataLoadingError - Throws an error if no matching saved data is found for an IFC element.
+ * This function iterates over the children of the given IFC model and updates
+ * their user data with the corresponding data from the saved data record.
+ *
+ * @param ifcModel - The IFC model whose elements' data will be restored.
+ * @param savedData - A record containing the saved data for the IFC elements,
+ *                    keyed by their expressId.
  */
-const restoreDataToIfcModel = (ifcModel: IfcModel, savedData: IfcElementDataRecord): void => {
+const restoreDataToIfcModelFromRecord = (ifcModel: IfcModel, savedData: IfcElementDataRecord): void => {
 	for (const ifcElement of ifcModel.children) {
 		const data = savedData[ifcElement.userData.expressId]
 		if (!data) {
@@ -42,4 +45,24 @@ const restoreDataToIfcModel = (ifcModel: IfcModel, savedData: IfcElementDataReco
 	}
 }
 
-export { extractDataToSave, restoreDataToIfcModel }
+/**
+ * Restores data to an IFC model from a given set of IFC element data.
+ *
+ * This function iterates over the children of the provided IFC model and updates
+ * their userData properties with the corresponding data from the ifcElementsData array.
+ * The matching is done based on the expressId property.
+ *
+ * @param ifcModel - The IFC model whose elements' data will be restored.
+ * @param ifcElementsData - An array of IFC element data objects to restore into the model.
+ */
+const restoreDataToIfcModelFromProperties = (ifcModel: IfcModel, ifcElementsData: IfcElementData[]): void => {
+	for (const ifcElement of ifcModel.children) {
+		const data = ifcElementsData.find(data => data.expressId === ifcElement.userData.expressId)
+		if (!data) {
+			continue
+		}
+		ifcElement.userData = { ...ifcElement.userData, ...data }
+	}
+}
+
+export { extractDataToSave, restoreDataToIfcModelFromProperties, restoreDataToIfcModelFromRecord }

@@ -32,7 +32,8 @@ import {
 	loadIfcModel,
 	loadIfcProperties,
 	processIfcData,
-	restoreDataToIfcModel,
+	restoreDataToIfcModelFromProperties,
+	restoreDataToIfcModelFromRecord,
 	setMaterialToDefault,
 	setMaterialToHidden,
 	setMaterialToHovered,
@@ -182,6 +183,7 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 	}, [ref])
 
 	const processIfcMarker = useCallback((ifcMarkerElement: ReactElement<IfcOverlayProps>): IfcMarkerLink[] => {
+		console.log('processIfcMarker | ifcMarkerElement:', ifcMarkerElement)
 		const newMarkerLinks: IfcMarkerLink[] = []
 		const markerRequirements = ifcMarkerElement.props.requirements
 		const props = ifcMarkerElement.props
@@ -738,6 +740,8 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 
 		if (data) {
 			ifcModelItemsData = data
+			setLoadingProgress({ status: 'RESTORING_DATA_PROGRESS' })
+			restoreDataToIfcModelFromRecord(modelRef.current, ifcModelItemsData)
 		} else {
 			await loadIfcProperties(
 				ifcBuffer,
@@ -774,11 +778,11 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 				)
 
 				setLoadingProgress({ status: 'PROCESSING_PROGRESS', loaded: index, total })
+
+				setLoadingProgress({ status: 'RESTORING_DATA_PROGRESS' })
+				restoreDataToIfcModelFromProperties(modelRef.current, ifcModelItemsData)
 			}
 		}
-
-		setLoadingProgress({ status: 'RESTORING_DATA_PROGRESS' })
-		restoreDataToIfcModel(modelRef.current, ifcModelItemsData)
 
 		if (onLoad) {
 			onLoad()

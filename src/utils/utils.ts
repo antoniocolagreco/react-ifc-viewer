@@ -1,3 +1,4 @@
+/* eslint-disable unicorn/import-style */
 /* eslint-disable unicorn/prefer-global-this */
 
 const isRunningInBrowser = () => {
@@ -7,6 +8,14 @@ const isRunningInBrowser = () => {
 	return true
 }
 
+const getPath = async () => {
+	if (isRunningInBrowser()) {
+		return `${location.origin}${import.meta.env.BASE_URL}`
+	}
+	const path = await import('node:path')
+	return path.resolve('public')
+}
+
 const getPercetage = (value?: number, total?: number) => {
 	if (value && total) {
 		return `${String(Math.round((value / total) * 100))}%`
@@ -14,4 +23,4 @@ const getPercetage = (value?: number, total?: number) => {
 	return '0%'
 }
 
-export { getPercetage, isRunningInBrowser }
+export { getPath, getPercetage, isRunningInBrowser }
