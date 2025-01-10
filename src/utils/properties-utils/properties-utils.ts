@@ -340,17 +340,17 @@ const satisfiesRequirements = (ifcElementData: IfcElementData, requirements: Req
 	}
 
 	// Check if the object is the correct type
-	if (requirements.requiredType && ifcElementData.type !== requirements.requiredType) {
+	if (requirements.type && ifcElementData.type !== requirements.type) {
 		return false
 	}
 
 	// Check if the object has no properties
-	if (!requirements.requiredProperties || requirements.requiredProperties.length === 0) {
+	if (!requirements.properties || requirements.properties.length === 0) {
 		return true
 	}
 
 	// Check if the object has the required properties
-	if (!matchPropertiesAndType(ifcElementData, requirements.requiredProperties)) {
+	if (!matchPropertiesAndType(ifcElementData, requirements.properties)) {
 		return false
 	}
 
@@ -453,7 +453,7 @@ const setIfcDataLinks = (
 	const links: Record<string, ExpressId[]> = {}
 
 	for (const linkRequirement of linkRequirements) {
-		const { linkPropertyName } = linkRequirement
+		const { name: linkPropertyName } = linkRequirement
 
 		const propertiesToFind: Property[] = []
 
@@ -465,8 +465,8 @@ const setIfcDataLinks = (
 
 		propertiesToFind.push({ name: linkPropertyName, value: linkPropertyValue })
 
-		if (linkRequirement.requiredProperties) {
-			for (const requiredProperty of linkRequirement.requiredProperties) {
+		if (linkRequirement.properties) {
+			for (const requiredProperty of linkRequirement.properties) {
 				propertiesToFind.push(requiredProperty)
 			}
 		}

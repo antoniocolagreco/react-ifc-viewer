@@ -43,11 +43,11 @@ type PropertySet = {
 	properties: Property[]
 }
 
-type Requirements = { requiredType?: string; requiredProperties?: Property[] }
+type Requirements = { type?: string; properties?: Property[] }
 
 type SelectableRequirements = Requirements & { linkRequirements?: LinkRequirements }
 type MarkerRequirements = Requirements & { children: ReactNode }
-type LinkRequirements = Requirements & { linkPropertyName: string }
+type LinkRequirements = Requirements & { name: string }
 
 type IfcMarkerLink = {
 	element: IfcElement

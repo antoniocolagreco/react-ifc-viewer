@@ -188,8 +188,8 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 
 		const ifcElements = filterIfcElementsByPropertiesAndType(
 			modelRef.current,
-			markerRequirements.requiredProperties,
-			markerRequirements.requiredType,
+			markerRequirements.properties,
+			markerRequirements.type,
 		)
 
 		for (const element of ifcElements) {

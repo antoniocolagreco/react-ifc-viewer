@@ -112,9 +112,7 @@ type Story = StoryObj<typeof meta>
 
 const defaultProps: MockComponentsProps = {
 	keepProperties: false,
-	selectableRequirements: [
-		{ requiredProperties: [{ name: 'Contrassegno' }], requiredType: 'IfcDistributionControlElement' },
-	],
+	selectableRequirements: [{ properties: [{ name: 'Contrassegno' }], type: 'IfcDistributionControlElement' }],
 	linkRequirements: [],
 	alwaysVisibleRequirements: [],
 }

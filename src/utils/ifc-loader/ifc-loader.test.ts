@@ -75,7 +75,7 @@ describe('load-ifc', () => {
 		if (ifcModelItemsData) {
 			const linksRequirements = undefined
 			const selectableRequirements: SelectableRequirements[] = [
-				{ requiredProperties: [{ name: 'Contrassegno' }], requiredType: 'IfcDistributionControlElement' },
+				{ properties: [{ name: 'Contrassegno' }], type: 'IfcDistributionControlElement' },
 			]
 			const alwaysVisibleRequirements = undefined
 

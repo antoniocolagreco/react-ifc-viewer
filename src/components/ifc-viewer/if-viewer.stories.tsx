@@ -23,14 +23,14 @@ const defaultProps: IfcViewerProps = {
 	enableMeshSelection: true,
 	style: { minHeight: '480px' },
 	links: [],
-	selectable: [{ requiredType: 'IfcDistributionControlElement' }],
-	alwaysVisible: [{ requiredType: 'IfcDistributionControlElement' }],
+	selectable: [{ type: 'IfcDistributionControlElement' }],
+	alwaysVisible: [{ type: 'IfcDistributionControlElement' }],
 	children: (
 		<>
 			<IfcOverlay
 				requirements={{
-					requiredType: 'IfcDistributionControlElement',
-					requiredProperties: [{ name: 'Contrassegno' }],
+					type: 'IfcDistributionControlElement',
+					properties: [{ name: 'Contrassegno' }],
 				}}
 				onSelect={ifcElement => {
 					console.log(ifcElement)
