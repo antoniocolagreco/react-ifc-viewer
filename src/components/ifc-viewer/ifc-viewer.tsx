@@ -115,7 +115,7 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 
 		enableMeshHover = false,
 		enableMeshSelection = false,
-		showBoundingSphere = true,
+		showBoundingSphere = false,
 
 		className,
 		children,
