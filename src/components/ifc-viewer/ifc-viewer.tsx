@@ -44,7 +44,6 @@ import {
 import clsx from 'clsx'
 import {
 	Children,
-	memo,
 	useCallback,
 	useEffect,
 	useRef,
@@ -86,16 +85,15 @@ type IfcViewerProps = ComponentPropsWithRef<'div'> & {
 	links?: LinkRequirements[]
 	selectable?: SelectableRequirements[]
 	alwaysVisible?: Requirements[]
-	anchors?: Requirements[]
 
 	highlightedSelectables?: SelectableRequirements[]
 
 	onMeshSelect?: (ifcElement?: IfcElement) => void
 	onMeshHover?: (ifcElement?: IfcElement) => void
 
-	showBoundingSphere?: boolean
 	enableMeshSelection?: boolean
 	enableMeshHover?: boolean
+	showBoundingSphere?: boolean
 }
 
 const IfcViewer: FC<IfcViewerProps> = props => {
@@ -117,7 +115,7 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 
 		enableMeshHover = false,
 		enableMeshSelection = false,
-		showBoundingSphere = false,
+		showBoundingSphere = true,
 
 		className,
 		children,
@@ -125,6 +123,7 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 
 		...otherProps
 	} = props
+	const currentLoadedUrlRef = useRef<string>('')
 
 	const containerRef = useRef<HTMLDivElement>(null)
 	const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -404,14 +403,6 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 		setIfcAnchors(newAnchors)
 	}, [hover, select])
 
-	useEffect(() => {
-		if (loadingProgress.status === 'READY') {
-			processChildren()
-			renderScene()
-			updateAnchors()
-		}
-	}, [loadingProgress.status, processChildren, renderScene, updateAnchors])
-
 	const updateMousePointer = (event: MouseEvent): void => {
 		if (!canvasRef.current) throw new Error('Canvas not loaded')
 		const rect = canvasRef.current.getBoundingClientRect()
@@ -546,10 +537,10 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 		if (!cameraRef.current || !controlsRef.current) {
 			return
 		}
-		cameraRef.current.position.set(10, 20, 20)
 		select()
 		updateBoundingSphere()
 		if (boundingSphereRef.current) {
+			cameraRef.current.position.set(10, 20, 20)
 			fitBoundingSphere(boundingSphereRef.current, cameraRef.current, controlsRef.current)
 		}
 		renderScene()
@@ -615,6 +606,9 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 	)
 
 	const init = useCallback(() => {
+		if (loadingProgress.status !== 'NOT_INITIALIZED') {
+			return
+		}
 		if (!canvasRef.current) {
 			throw new Error('Canvas not found')
 		}
@@ -670,11 +664,10 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 			animationFrameIdRef.current = requestAnimationFrame(animate)
 		}
 		animate()
-
-		setLoadingProgress({ status: 'READY', loaded: 1, total: 1 })
-	}, [renderScene, updateAnchors])
+	}, [loadingProgress.status, renderScene, updateAnchors])
 
 	const unloadEverything = useCallback((): void => {
+		boundingSphereMeshRef.current = undefined
 		disposeObjects(sceneRef.current)
 		if (animationFrameIdRef.current) {
 			cancelAnimationFrame(animationFrameIdRef.current)
@@ -686,7 +679,7 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 		resetScene()
 
 		let ifcBuffer: Uint8Array = new Uint8Array()
-		setLoadingProgress({ status: 'NOT_INITIALIZED' })
+		setLoadingProgress({ status: 'FETCHING' })
 
 		await fetchFile(
 			url,
@@ -694,15 +687,15 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 				ifcBuffer = buffer
 			},
 			progress => {
-				setLoadingProgress({ status: 'FETCHING_PROGRESS', loaded: progress.loaded, total: progress.total })
+				setLoadingProgress({ status: 'FETCHING', loaded: progress.loaded, total: progress.total })
 			},
 			error => {
-				setLoadingProgress({ status: 'FETCHING_ERROR' })
+				setLoadingProgress({ status: 'ERROR_FETCHING' })
 				throw error
 			},
 		)
 
-		setLoadingProgress({ status: 'LOADING_MESHES_PROGRESS' })
+		setLoadingProgress({ status: 'LOADING_MESHES' })
 
 		await loadIfcModel(
 			ifcBuffer,
@@ -715,23 +708,11 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 				sceneRef.current.updateMatrix()
 				sceneRef.current.updateMatrixWorld(true)
 
-				updateBoundingSphere()
-
-				if (!cameraRef.current) {
-					throw new Error('Camera not found')
-				}
-				if (!controlsRef.current) {
-					throw new Error('Controls not found')
-				}
-
-				if (boundingSphereRef.current) {
-					fitBoundingSphere(boundingSphereRef.current, cameraRef.current, controlsRef.current)
-				}
-
+				resetView()
 				renderScene()
 			},
 			error => {
-				setLoadingProgress({ status: 'LOADING_MESHES_ERROR' })
+				setLoadingProgress({ status: 'ERROR_LOADING_MESHES' })
 				throw error
 			},
 		)
@@ -740,7 +721,7 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 
 		if (data) {
 			ifcModelItemsData = data
-			setLoadingProgress({ status: 'RESTORING_DATA_PROGRESS' })
+			setLoadingProgress({ status: 'SETTING_DATA' })
 			restoreDataToIfcModelFromRecord(modelRef.current, ifcModelItemsData)
 		} else {
 			await loadIfcProperties(
@@ -750,13 +731,13 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 				},
 				progress => {
 					setLoadingProgress({
-						status: 'LOADING_PROPERTIES_PROGRESS',
+						status: 'LOADING_PROPERTIES',
 						loaded: progress.loaded,
 						total: progress.total,
 					})
 				},
 				error => {
-					setLoadingProgress({ status: 'LOADING_PROPERTIES_ERROR' })
+					setLoadingProgress({ status: 'ERROR_LOADING_PROPERTIES' })
 					throw error
 				},
 			)
@@ -768,7 +749,6 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 				if (!ifcElementData) {
 					throw new Error('ifcElement not found')
 				}
-
 				processIfcData(
 					ifcElementData,
 					ifcModelItemsData,
@@ -777,26 +757,25 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 					alwaysVisibleRequirements,
 				)
 
-				setLoadingProgress({ status: 'PROCESSING_PROGRESS', loaded: index, total })
-
-				setLoadingProgress({ status: 'RESTORING_DATA_PROGRESS' })
-				restoreDataToIfcModelFromProperties(modelRef.current, ifcModelItemsData)
+				setLoadingProgress({ status: 'PROCESSING', loaded: index, total })
 			}
+			setLoadingProgress({ status: 'SETTING_DATA' })
+			restoreDataToIfcModelFromProperties(modelRef.current, ifcModelItemsData)
 		}
 
 		if (onLoad) {
 			onLoad()
 		}
 
-		setLoadingProgress({ status: 'READY' })
+		setLoadingProgress({ loaded: 1, total: 1, status: 'DONE' })
 	}, [
 		alwaysVisibleRequirements,
 		data,
 		linksRequirements,
 		onLoad,
 		renderScene,
+		resetView,
 		selectableRequirements,
-		updateBoundingSphere,
 		url,
 	])
 
@@ -806,8 +785,20 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 		}
 
 		init()
-		void loadFile()
 
+		if (currentLoadedUrlRef.current !== url) {
+			currentLoadedUrlRef.current = url
+			void loadFile().then(() => {
+				processChildren()
+				updateAnchors()
+			})
+		}
+
+		processChildren()
+		updateAnchors()
+	}, [init, loadFile, processChildren, resetView, updateAnchors, url])
+
+	useEffect(() => {
 		setGlobalState({
 			viewPort: {
 				focusView,
@@ -822,7 +813,6 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 			renderScene,
 			updateAnchors,
 		})
-
 		return () => {
 			unloadEverything()
 			resizeObserverRef.current?.disconnect()
@@ -831,8 +821,6 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 		changeViewMode,
 		fitView,
 		focusView,
-		init,
-		loadFile,
 		renderScene,
 		resetView,
 		selectByExpressId,
@@ -854,7 +842,7 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 			/>
 			{ifcAnchors}
 			<div className="ifc-children-container">{ifcViewerChildren}</div>
-			{loadingProgress.status !== 'READY' && (
+			{loadingProgress.status !== 'DONE' && (
 				<div className="ifc-progress-bar-container">
 					<ProgressBar
 						max={loadingProgress.total ?? 0}
@@ -869,10 +857,4 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 	)
 }
 
-const memoizedIfcViewer = memo(IfcViewer, (prevProps, nextProps) => {
-	if (prevProps.url !== nextProps.url) return false
-
-	return true
-})
-
-export { memoizedIfcViewer as IfcViewer, type IfcViewerProps }
+export { IfcViewer, type IfcViewerProps }

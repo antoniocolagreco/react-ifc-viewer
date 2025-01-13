@@ -50,7 +50,7 @@ npm install react-ifc-viewer
 Below is an example demonstrating how to use the viewer:
 
 ```jsx
-<IfcViewer url="/test/castle.ifc" enableMeshHover enableMeshSelection>
+<IfcViewer url="/test/castle.ifc" enableMeshHover enableMeshSelection >
 	<IfcOverlay
 		requirements={{
 			type: 'IfcDistributionControlElement',

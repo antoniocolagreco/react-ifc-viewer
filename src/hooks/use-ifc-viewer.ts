@@ -75,14 +75,14 @@ const useIfcViewer = () => {
 				},
 				progress => {
 					setLoadingStatus({
-						status: 'LOADING_PROPERTIES_PROGRESS',
+						status: 'LOADING_PROPERTIES',
 						loaded: progress.loaded,
 						total: progress.total,
 						percentage: getPercetage(progress.loaded, progress.total),
 					})
 				},
 				error => {
-					setLoadingStatus({ status: 'LOADING_PROPERTIES_ERROR' })
+					setLoadingStatus({ status: 'ERROR_LOADING_PROPERTIES' })
 					throw error
 				},
 				options,
@@ -90,7 +90,7 @@ const useIfcViewer = () => {
 
 			if (!ifcElementsData) {
 				setLoadingStatus({
-					status: 'LOADING_PROPERTIES_ERROR',
+					status: 'ERROR_LOADING_PROPERTIES',
 				})
 				return []
 			}
@@ -112,7 +112,7 @@ const useIfcViewer = () => {
 				)
 
 				setLoadingStatus({
-					status: 'PROCESSING_PROGRESS',
+					status: 'PROCESSING',
 					loaded: index,
 					total,
 					percentage: getPercetage(index, total),
@@ -121,7 +121,7 @@ const useIfcViewer = () => {
 
 			const dataToSave = extractDataToSave(ifcElementsData, keepProperties)
 
-			setLoadingStatus({ status: 'READY', loaded: total, total, percentage: '100%' })
+			setLoadingStatus({ status: 'DONE', loaded: total, total, percentage: '100%' })
 			return dataToSave
 		},
 		[],

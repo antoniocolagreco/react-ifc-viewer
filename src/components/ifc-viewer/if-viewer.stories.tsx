@@ -38,9 +38,6 @@ const defaultProps: IfcViewerProps = {
 			>
 				<IfcGreenMarker hoverEffect />
 			</IfcOverlay>
-			{/* <IfcOverlay requirements={filterB}>
-				<RedMarker style={{ pointerEvents: 'none' }} />
-			</IfcOverlay> */}
 			<IfcControls />
 		</>
 	),
