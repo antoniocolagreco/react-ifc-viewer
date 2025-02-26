@@ -40,7 +40,7 @@ import { useGlobalState } from './use-global-state'
 const useIfcViewer = () => {
 	const { globalState } = useGlobalState()
 
-	const [propertiesReaderStatus, setPropertiesReaderStatus] = useState<IfcLoadingStatus>({
+	const [propertiesReaderProgress, setPropertiesReaderProgress] = useState<IfcLoadingStatus>({
 		status: 'NOT_INITIALIZED',
 		loaded: 0,
 		total: 1,
@@ -73,7 +73,7 @@ const useIfcViewer = () => {
 					ifcElementsData = data
 				},
 				progress => {
-					setPropertiesReaderStatus({
+					setPropertiesReaderProgress({
 						status: 'LOADING_PROPERTIES',
 						loaded: progress.loaded,
 						total: progress.total,
@@ -81,14 +81,14 @@ const useIfcViewer = () => {
 					})
 				},
 				error => {
-					setPropertiesReaderStatus({ status: 'ERROR_LOADING_PROPERTIES' })
+					setPropertiesReaderProgress({ status: 'ERROR_LOADING_PROPERTIES' })
 					throw error
 				},
 				options,
 			)
 
 			if (!ifcElementsData) {
-				setPropertiesReaderStatus({
+				setPropertiesReaderProgress({
 					status: 'ERROR_LOADING_PROPERTIES',
 				})
 				return []
@@ -110,7 +110,7 @@ const useIfcViewer = () => {
 					alwaysVisibleRequirements,
 				)
 
-				setPropertiesReaderStatus({
+				setPropertiesReaderProgress({
 					status: 'PROCESSING',
 					loaded: index,
 					total,
@@ -120,13 +120,13 @@ const useIfcViewer = () => {
 
 			const dataToSave = extractDataToSave(ifcElementsData, keepProperties)
 
-			setPropertiesReaderStatus({ status: 'DONE', loaded: total, total, percentage: '100%' })
+			setPropertiesReaderProgress({ status: 'DONE', loaded: total, total, percentage: '100%' })
 			return dataToSave
 		},
 		[],
 	)
 
-	return { ...globalState, utilities: { propertiesReader: { read, ...propertiesReaderStatus } } }
+	return { ...globalState, utilities: { propertiesReader: { read, ...propertiesReaderProgress } } }
 }
 
 export { useIfcViewer }

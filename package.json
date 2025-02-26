@@ -1,6 +1,6 @@
 {
 	"name": "react-ifc-viewer",
-	"version": "0.2.0",
+	"version": "0.2.1",
 	"description": "an IFC viewer for React",
 	"author": "Antonio Colagreco",
 	"license": "MIT",

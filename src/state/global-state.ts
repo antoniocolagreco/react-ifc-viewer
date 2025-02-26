@@ -10,7 +10,7 @@ type GlobalStateData = {
 		changeViewMode: (viewMode?: IfcViewMode) => void
 		viewMode: IfcViewMode
 	}
-	status: IfcLoadingStatus
+	loadingProgress: IfcLoadingStatus
 	model: IfcModel | undefined
 	selectableElements: IfcElement[]
 	selectByProperty: (property: Property) => void
@@ -40,7 +40,7 @@ const globalState: GlobalState = {
 			changeViewMode: () => {},
 			viewMode: 'VIEW_MODE_ALL',
 		},
-		status: {
+		loadingProgress: {
 			status: 'NOT_INITIALIZED',
 			loaded: 0,
 			total: 0,
