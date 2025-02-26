@@ -1,8 +1,8 @@
 'use client'
-import { useIfcViewer } from '@/hooks/use-ifc-viewer'
+import { useIfcViewer } from '@/hooks'
 import clsx from 'clsx'
 import { type ComponentPropsWithRef, type FC } from 'react'
-import { IfcButton } from '../ifc-button'
+import { IfcButton } from '@/components'
 import './ifc-controls.css'
 
 type IfcControlsProps = ComponentPropsWithRef<'div'>

@@ -13,16 +13,16 @@ type IfcViewerStatus =
 	| 'ERROR_PROCESSING'
 	| 'ERROR_SETTING_DATA'
 
-type ViewMode = 'VIEW_MODE_ALL' | 'VIEW_MODE_TRANSPARENT' | 'VIEW_MODE_SELECTABLE'
+type IfcViewMode = 'VIEW_MODE_ALL' | 'VIEW_MODE_TRANSPARENT' | 'VIEW_MODE_SELECTABLE'
 
-type LoadingStatus = {
+type IfcLoadingStatus = {
 	status: IfcViewerStatus
 	loaded?: number
 	total?: number
 	percentage?: string
 }
-type Position = { x: number; y: number }
+type IfcPosition = { x: number; y: number }
 
-type MouseState = Position & { clicked: boolean }
+type IfcMouseState = IfcPosition & { clicked: boolean }
 
-export type { IfcViewerStatus, LoadingStatus, MouseState, Position, ViewMode }
+export type { IfcLoadingStatus, IfcMouseState, IfcPosition, IfcViewerStatus, IfcViewMode }

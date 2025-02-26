@@ -1,5 +1,5 @@
 import type { IfcElement, IfcModel } from '@/classes'
-import type { Position } from '@/components/ifc-viewer/types'
+import type { IfcPosition } from '@/components'
 import { Color, MeshLambertMaterial, type PerspectiveCamera, type Vector3, type WebGLRenderer } from 'three'
 
 /**
@@ -14,7 +14,7 @@ const transformViewportPositionToScreenPosition = (
 	camera: PerspectiveCamera,
 	renderer: WebGLRenderer,
 	position: Vector3,
-): Position => {
+): IfcPosition => {
 	const vector = position.clone()
 	vector.project(camera)
 

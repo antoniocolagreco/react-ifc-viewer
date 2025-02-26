@@ -4,7 +4,7 @@ import { Grid } from '@/3d-components/grid'
 import type { IfcElement } from '@/classes'
 import { IfcMesh, IfcModel } from '@/classes'
 import { IfcAnchor, type IfcAnchorProps } from '@/components/ifc-anchor'
-import { type IfcOverlayProps } from '@/components/ifc-overlay'
+import { type IfcOverlayProps } from '@/components'
 import { ProgressBar } from '@/components/progress-bar'
 import { IFCViewerLoadingMessages } from '@/costants'
 import { useGlobalState } from '@/hooks/use-global-state'
@@ -68,7 +68,7 @@ import {
 } from 'three'
 import { OrbitControls } from 'three/examples/jsm/Addons.js'
 import './ifc-viewer.css'
-import type { LoadingStatus, MouseState, ViewMode } from './types'
+import type { IfcLoadingStatus, IfcMouseState, IfcViewMode } from './types'
 
 const LAYER_MESHES = 0
 const LAYER_HELPERS = 29
@@ -149,14 +149,14 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 	const previousHoveredIfcElementRef = useRef<IfcElement>(undefined)
 
 	const selectableIntersectionsRef = useRef<Intersection<IfcMesh>[]>([])
-	const mouseStatusRef = useRef<MouseState>({ clicked: false, x: 0, y: 0 })
+	const mouseStatusRef = useRef<IfcMouseState>({ clicked: false, x: 0, y: 0 })
 
 	const resizeObserverRef = useRef<ResizeObserver>(undefined)
 
 	const renderingEnabledRef = useRef(false)
 	const renderingTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined)
 
-	const viewModeRef = useRef<ViewMode>('VIEW_MODE_ALL')
+	const [viewMode, setViewMode] = useState<IfcViewMode>('VIEW_MODE_ALL')
 
 	const ifcMarkerLinksRef = useRef<IfcMarkerLink[]>([])
 	const [ifcAnchors, setIfcAnchors] = useState<ReactElement<IfcAnchorProps>[]>()
@@ -166,7 +166,7 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 
 	const [cursorStyle, setCursorStyle] = useState<CSSProperties>({ cursor: 'default' })
 
-	const [loadingProgress, setLoadingProgress] = useState<LoadingStatus>({
+	const [loadingProgress, setLoadingProgress] = useState<IfcLoadingStatus>({
 		status: 'NOT_INITIALIZED',
 		loaded: 0,
 		total: 0,
@@ -263,7 +263,7 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 			} else if (ifcElement === hoveredIfcElementRef.current) {
 				setMaterialToHovered(ifcElement, modelRef.current, hoverColor)
 			} else {
-				switch (viewModeRef.current) {
+				switch (viewMode) {
 					case 'VIEW_MODE_ALL': {
 						setMaterialToDefault(ifcElement, modelRef.current)
 						break
@@ -287,7 +287,7 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 				}
 			}
 		},
-		[hoverColor, selectedColor],
+		[hoverColor, selectedColor, viewMode],
 	)
 
 	const updateAllMeshesDisplay = useCallback(() => {
@@ -579,31 +579,29 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 		[fitView, select],
 	)
 
-	const changeViewMode = useCallback(
-		(mode?: ViewMode) => {
+	const changeViewMode = useCallback((mode?: IfcViewMode) => {
+		setViewMode(state => {
 			if (mode) {
-				viewModeRef.current = mode
-			} else {
-				switch (viewModeRef.current) {
-					case 'VIEW_MODE_SELECTABLE': {
-						viewModeRef.current = 'VIEW_MODE_ALL'
-						break
-					}
-					case 'VIEW_MODE_ALL': {
-						viewModeRef.current = 'VIEW_MODE_TRANSPARENT'
-						break
-					}
-					case 'VIEW_MODE_TRANSPARENT': {
-						viewModeRef.current = 'VIEW_MODE_SELECTABLE'
-						break
-					}
+				return mode
+			}
+			switch (state) {
+				case 'VIEW_MODE_SELECTABLE': {
+					return 'VIEW_MODE_ALL'
+				}
+				case 'VIEW_MODE_ALL': {
+					return 'VIEW_MODE_TRANSPARENT'
+				}
+				case 'VIEW_MODE_TRANSPARENT': {
+					return 'VIEW_MODE_SELECTABLE'
 				}
 			}
-			updateAllMeshesDisplay()
-			renderScene()
-		},
-		[updateAllMeshesDisplay, renderScene],
-	)
+		})
+	}, [])
+
+	useEffect(() => {
+		updateAllMeshesDisplay()
+		renderScene()
+	}, [renderScene, updateAllMeshesDisplay, viewMode])
 
 	const init = useCallback(() => {
 		if (loadingProgress.status !== 'NOT_INITIALIZED') {
@@ -805,6 +803,7 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 				fitView,
 				resetView,
 				changeViewMode,
+				viewMode,
 			},
 			model: modelRef.current,
 			selectableElements: modelRef.current.children.filter(ifcElement => ifcElement.userData.selectable),
@@ -813,10 +812,6 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 			renderScene,
 			updateAnchors,
 		})
-		return () => {
-			unloadEverything()
-			resizeObserverRef.current?.disconnect()
-		}
 	}, [
 		changeViewMode,
 		fitView,
@@ -826,9 +821,16 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 		selectByExpressId,
 		selectByProperty,
 		setGlobalState,
-		unloadEverything,
 		updateAnchors,
+		viewMode,
 	])
+
+	useEffect(() => {
+		return () => {
+			unloadEverything()
+			resizeObserverRef.current?.disconnect()
+		}
+	}, [unloadEverything])
 
 	return (
 		<div className={clsx('ifc-viewer', className)} ref={containerRef} {...otherProps}>

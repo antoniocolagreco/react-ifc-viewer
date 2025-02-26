@@ -1,22 +1,23 @@
-import type { LoadingStatus } from '@/components/ifc-viewer/types'
+import type { IfcLoadingStatus } from '@/components'
 import type { IfcElementData, LinkRequirements, Requirements, SelectableRequirements } from '@/types'
 import { extractDataToSave, getPercetage, loadIfcProperties, processIfcData, type WasmPathType } from '@/utils'
 import { useCallback, useState } from 'react'
 import { useGlobalState } from './use-global-state'
 
 /**
- * Custom hook to manage IFC viewer state and operations.
+ * Custom hook to manage IFC viewer properties and state.
  *
- * @returns An object containing the viewport commands and utility functions.
+ * @returns An object containing global state and utilities for reading IFC properties.
  *
  * @example
- * const { viewPort, utilities } = useIfcViewer();
+ * const { utilities } = useIfcViewer();
+ * const { read } = utilities.propertiesReader;
  *
  * @typedef {Object} LoadingStatus
  * @property {string} status - The current status of the loading process.
  * @property {number} loaded - The number of items loaded.
  * @property {number} total - The total number of items to load.
- * @property {string} percentage - The loading progress as a percentage.
+ * @property {string} percentage - The percentage of items loaded.
  *
  * @typedef {Object} LinkRequirements
  * @typedef {Object} SelectableRequirements
@@ -24,31 +25,29 @@ import { useGlobalState } from './use-global-state'
  * @typedef {string} WasmPathType
  * @typedef {Object} IfcElementData
  *
- * @function readProperties
- * Reads and processes IFC properties from a given buffer.
- *
+ * @function read
+ * @async
  * @param {Uint8Array} ifcBuffer - The buffer containing the IFC data.
- * @param {Object} [options] - Optional parameters for reading properties.
- * @param {Object} [options.requirements] - Requirements for processing IFC data.
- * @param {LinkRequirements[]} [options.requirements.linkRequirements] - Link requirements.
- * @param {SelectableRequirements[]} [options.requirements.selectableRequirements] - Selectable requirements.
- * @param {Requirements[]} [options.requirements.alwaysVisibleRequirements] - Always visible requirements.
- * @param {boolean} [options.keepProperties] - Whether to keep properties after processing.
+ * @param {Object} [options] - Optional parameters for reading IFC properties.
+ * @param {Object} [options.requirements] - Requirements for processing IFC elements.
+ * @param {LinkRequirements[]} [options.requirements.linkRequirements] - Link requirements for IFC elements.
+ * @param {SelectableRequirements[]} [options.requirements.selectableRequirements] - Selectable requirements for IFC elements.
+ * @param {Requirements[]} [options.requirements.alwaysVisibleRequirements] - Requirements for always visible IFC elements.
+ * @param {boolean} [options.keepProperties] - Flag to keep properties after processing.
  * @param {WasmPathType} [options.wasmPath] - Path to the WebAssembly module.
- *
- * @returns {Promise<IfcElementData[]>} A promise that resolves to the processed IFC element data.
+ * @returns {Promise<IfcElementData[]>} A promise that resolves to an array of processed IFC element data.
  */
 const useIfcViewer = () => {
 	const { globalState } = useGlobalState()
 
-	const [loadingStatus, setLoadingStatus] = useState<LoadingStatus>({
+	const [propertiesReaderStatus, setPropertiesReaderStatus] = useState<IfcLoadingStatus>({
 		status: 'NOT_INITIALIZED',
 		loaded: 0,
 		total: 1,
 		percentage: '0%',
 	})
 
-	const readProperties = useCallback(
+	const read = useCallback(
 		async (
 			ifcBuffer: Uint8Array,
 			options?: {
@@ -74,7 +73,7 @@ const useIfcViewer = () => {
 					ifcElementsData = data
 				},
 				progress => {
-					setLoadingStatus({
+					setPropertiesReaderStatus({
 						status: 'LOADING_PROPERTIES',
 						loaded: progress.loaded,
 						total: progress.total,
@@ -82,14 +81,14 @@ const useIfcViewer = () => {
 					})
 				},
 				error => {
-					setLoadingStatus({ status: 'ERROR_LOADING_PROPERTIES' })
+					setPropertiesReaderStatus({ status: 'ERROR_LOADING_PROPERTIES' })
 					throw error
 				},
 				options,
 			)
 
 			if (!ifcElementsData) {
-				setLoadingStatus({
+				setPropertiesReaderStatus({
 					status: 'ERROR_LOADING_PROPERTIES',
 				})
 				return []
@@ -111,7 +110,7 @@ const useIfcViewer = () => {
 					alwaysVisibleRequirements,
 				)
 
-				setLoadingStatus({
+				setPropertiesReaderStatus({
 					status: 'PROCESSING',
 					loaded: index,
 					total,
@@ -121,13 +120,13 @@ const useIfcViewer = () => {
 
 			const dataToSave = extractDataToSave(ifcElementsData, keepProperties)
 
-			setLoadingStatus({ status: 'DONE', loaded: total, total, percentage: '100%' })
+			setPropertiesReaderStatus({ status: 'DONE', loaded: total, total, percentage: '100%' })
 			return dataToSave
 		},
 		[],
 	)
 
-	return { ...globalState, utilities: { readProperties, loadingStatus } }
+	return { ...globalState, utilities: { propertiesReader: { read, ...propertiesReaderStatus } } }
 }
 
 export { useIfcViewer }

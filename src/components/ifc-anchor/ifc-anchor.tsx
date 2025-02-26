@@ -1,10 +1,10 @@
 import clsx from 'clsx'
 import { type ComponentPropsWithRef, type FC } from 'react'
-import type { Position } from '../ifc-viewer/types'
+import type { IfcPosition } from '@/components'
 import './ifc-anchor.css'
 
 type IfcAnchorProps = Omit<ComponentPropsWithRef<'div'>, 'onSelect'> & {
-	position: Position
+	position: IfcPosition
 	onSelect?: () => void
 	onHover?: () => void
 }

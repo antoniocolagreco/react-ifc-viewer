@@ -1,7 +1,7 @@
 import type { GeometryId, IfcElementData, IfcModelData, MaterialId } from '@/types'
 import { Group, type BufferGeometry, type MeshLambertMaterial } from 'three'
-import { IfcElement } from './ifc-element'
-import type { IfcMesh } from './ifc-mesh'
+import { IfcElement } from '@/classes'
+import type { IfcMesh } from '@/classes'
 
 class IfcModel extends Group {
 	override name: string = 'IfcModel'

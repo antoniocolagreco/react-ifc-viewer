@@ -1,6 +1,6 @@
 import type { IfcElementData } from '@/types'
 import { Group } from 'three'
-import type { IfcMesh } from './ifc-mesh'
+import type { IfcMesh } from '@/classes'
 
 class IfcElement extends Group {
 	override name: string = 'ifcElement'

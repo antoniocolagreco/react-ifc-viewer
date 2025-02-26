@@ -16,7 +16,7 @@ const MockComponent: FC<MockComponentsProps> = props => {
 	const { keepProperties, linkRequirements, selectableRequirements, alwaysVisibleRequirements, wasmPath, ...rest } =
 		props
 	const {
-		utilities: { readProperties, loadingStatus },
+		utilities: { propertiesReader },
 	} = useIfcViewer()
 	const [data, setData] = useState<string>()
 
@@ -32,7 +32,7 @@ const MockComponent: FC<MockComponentsProps> = props => {
 			() => {},
 		)
 
-		const values = await readProperties(ifcBuffer, {
+		const values = await propertiesReader.read(ifcBuffer, {
 			keepProperties,
 			requirements: {
 				linkRequirements,
@@ -75,12 +75,12 @@ const MockComponent: FC<MockComponentsProps> = props => {
 						left: 0,
 						top: 0,
 						bottom: 0,
-						width: getPercetage(loadingStatus.loaded, loadingStatus.total),
+						width: getPercetage(propertiesReader.loaded, propertiesReader.total),
 						backgroundColor: 'lightblue',
 						zIndex: -1,
 					}}
 				/>
-				{loadingStatus.status}
+				{propertiesReader.status}
 			</div>
 			<button onClick={handleClick}>Load</button>
 			<div

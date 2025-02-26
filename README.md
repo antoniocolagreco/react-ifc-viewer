@@ -6,8 +6,6 @@ Its primary purpose is to locate IFC elements based on their properties, allowin
 
 The library is built with React, Three.js, and Web-IFC.
 
-
-
 ## Installation
 
 Before installing this library, make sure you have React, Three.js, and Web-IFC installed. Additionally, ensure you have the Web-IFC WASM files, which the library expects to find by default in the `public/wasm` directory.
@@ -17,8 +15,6 @@ Install the library using npm:
 ```bash
 npm install react-ifc-viewer
 ```
-
-
 
 ## Features
 
@@ -35,22 +31,18 @@ npm install react-ifc-viewer
 - **Controls:** You can navigate the model using mouse, left click to rotate and right click to move. There is a hook that adds extra functionalities to the viewer, such as focusing the view on selection, fitting and centering the view on selection, and resetting the viewport.
 - **Efficient Rendering:** The scene is rerendered only while interacting with the viewport.
 
-
-
 ## Limitations
 
 - **Performance:** The library’s performance is sufficient for the typical IFC files used by my customer. However, instanced meshes could be implemented for further optimization if needed. When I first started working with this library, I encountered issues with the materials, which led me to avoid using instanced meshes. However, now I am sharing all materials between the meshes when possible to improve performance and I generate new materials when I have to highlight meshes so I can easily switch to instanced meshes in the future.
 - **Maturity:** This library is still in its early stages, and I advise against using it at this time.
 - **Testing:** I have implemented some basic tests for the IFC model and properties loader, as well as a Storybook showcase for the viewer and the hook.
 
-
-
 ## Usage
 
 Below is an example demonstrating how to use the viewer:
 
 ```jsx
-<IfcViewer url="/test/castle.ifc" enableMeshHover enableMeshSelection >
+<IfcViewer url="/test/castle.ifc" enableMeshHover enableMeshSelection>
 	<IfcOverlay
 		requirements={{
 			type: 'IfcDistributionControlElement',

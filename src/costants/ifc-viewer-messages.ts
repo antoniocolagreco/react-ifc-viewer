@@ -1,4 +1,4 @@
-import type { IfcViewerStatus } from '@/components/ifc-viewer/types'
+import type { IfcViewerStatus } from '@/components'
 
 const IFCViewerLoadingMessages: Record<IfcViewerStatus, string> = {
 	NOT_INITIALIZED: 'Viewport not initialized',

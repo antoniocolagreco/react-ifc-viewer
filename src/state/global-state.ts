@@ -1,5 +1,5 @@
 import type { IfcElement, IfcModel } from '@/classes'
-import type { ViewMode } from '@/components/ifc-viewer/types'
+import type { IfcLoadingStatus, IfcViewMode } from '@/components'
 import type { Property } from '@/types'
 
 type GlobalStateData = {
@@ -7,8 +7,10 @@ type GlobalStateData = {
 		focusView: (expressID?: number) => void
 		fitView: (expressID?: number) => void
 		resetView: () => void
-		changeViewMode: (viewMode?: ViewMode) => void
+		changeViewMode: (viewMode?: IfcViewMode) => void
+		viewMode: IfcViewMode
 	}
+	status: IfcLoadingStatus
 	model: IfcModel | undefined
 	selectableElements: IfcElement[]
 	selectByProperty: (property: Property) => void
@@ -36,6 +38,12 @@ const globalState: GlobalState = {
 			fitView: () => {},
 			resetView: () => {},
 			changeViewMode: () => {},
+			viewMode: 'VIEW_MODE_ALL',
+		},
+		status: {
+			status: 'NOT_INITIALIZED',
+			loaded: 0,
+			total: 0,
 		},
 		model: undefined,
 		selectableElements: [],

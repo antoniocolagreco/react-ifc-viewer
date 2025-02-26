@@ -1,4 +1,4 @@
-import { IfcOverlay, type IfcOverlayProps } from '@/components/ifc-overlay'
+import { IfcOverlay, type IfcOverlayProps } from '@/components'
 import { Fragment, isValidElement, type ReactElement, type ReactNode } from 'react'
 
 const isIfcMarker = (object: unknown): object is ReactElement<IfcOverlayProps> =>
