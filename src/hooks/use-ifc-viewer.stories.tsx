@@ -1,4 +1,4 @@
-import type { LinkRequirements, Requirements, SelectableRequirements } from '@/types'
+import type { IfcElementLink, Requirements, SelectableRequirements } from '@/types'
 import { fetchFile, getPath, getPercetage, type WasmPathType } from '@/utils'
 import type { Meta, StoryObj } from '@storybook/react'
 import { useState, type ComponentPropsWithRef, type FC } from 'react'
@@ -6,7 +6,7 @@ import { useIfcViewer } from './use-ifc-viewer'
 
 type MockComponentsProps = ComponentPropsWithRef<'div'> & {
 	keepProperties?: boolean
-	linkRequirements?: LinkRequirements[]
+	linkRequirements?: IfcElementLink[]
 	selectableRequirements?: SelectableRequirements[]
 	alwaysVisibleRequirements?: Requirements[]
 	wasmPath?: WasmPathType

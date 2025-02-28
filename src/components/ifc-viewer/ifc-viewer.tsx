@@ -13,7 +13,7 @@ import type {
 	IfcElementData,
 	IfcMarkerLink,
 	LambertMesh,
-	LinkRequirements,
+	IfcElementLink,
 	Property,
 	Requirements,
 	SelectableRequirements,
@@ -83,7 +83,7 @@ type IfcViewerProps = ComponentPropsWithRef<'div'> & {
 	hoverColor?: number
 	selectedColor?: number
 
-	links?: LinkRequirements[]
+	links?: IfcElementLink[]
 	selectable?: SelectableRequirements[]
 	alwaysVisible?: Requirements[]
 

@@ -45,9 +45,16 @@ type PropertySet = {
 
 type Requirements = { type?: string; properties?: Property[] }
 
-type SelectableRequirements = Requirements & { linkRequirements?: LinkRequirements }
+type SelectableRequirements = Requirements & { links?: string[] }
 type MarkerRequirements = Requirements & { children: ReactNode }
-type LinkRequirements = Requirements & { name: string }
+
+type LinkRequirement = Requirements & { linkName: string }
+
+type IfcElementLink = {
+	sharedProperty: string
+	source: LinkRequirement
+	target: LinkRequirement
+}
 
 type IfcMarkerLink = {
 	element: IfcElement
@@ -67,12 +74,13 @@ export type {
 	ExpressId,
 	GeometryId,
 	IfcElementData,
+	IfcElementLink,
 	IfcLink,
 	IfcMarkerLink,
 	IfcMeshData,
 	IfcModelData,
 	LambertMesh,
-	LinkRequirements,
+	LinkRequirement,
 	MarkerRequirements,
 	MaterialId,
 	ProgressStatus,

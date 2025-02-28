@@ -1,5 +1,5 @@
 import type { IfcLoadingStatus } from '@/components'
-import type { IfcElementData, LinkRequirements, Requirements, SelectableRequirements } from '@/types'
+import type { IfcElementData, IfcElementLink, Requirements, SelectableRequirements } from '@/types'
 import { extractDataToSave, getPercetage, loadIfcProperties, processIfcData, type WasmPathType } from '@/utils'
 import { useCallback, useState } from 'react'
 import { useGlobalState } from './use-global-state'
@@ -30,7 +30,7 @@ import { useGlobalState } from './use-global-state'
  * @param {Uint8Array} ifcBuffer - The buffer containing the IFC data.
  * @param {Object} [options] - Optional parameters for reading IFC properties.
  * @param {Object} [options.requirements] - Requirements for processing IFC elements.
- * @param {LinkRequirements[]} [options.requirements.linkRequirements] - Link requirements for IFC elements.
+ * @param {IfcElementLink[]} [options.requirements.linkRequirements] - Link requirements for IFC elements.
  * @param {SelectableRequirements[]} [options.requirements.selectableRequirements] - Selectable requirements for IFC elements.
  * @param {Requirements[]} [options.requirements.alwaysVisibleRequirements] - Requirements for always visible IFC elements.
  * @param {boolean} [options.keepProperties] - Flag to keep properties after processing.
@@ -52,7 +52,7 @@ const useIfcViewer = () => {
 			ifcBuffer: Uint8Array,
 			options?: {
 				requirements?: {
-					linkRequirements?: LinkRequirements[]
+					linkRequirements?: IfcElementLink[]
 					selectableRequirements?: SelectableRequirements[]
 					alwaysVisibleRequirements?: Requirements[]
 				}

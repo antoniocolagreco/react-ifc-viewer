@@ -18,30 +18,58 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 const defaultProps: IfcViewerProps = {
-	url: `${await getPath()}/test/castle.ifc`,
+	url: `${await getPath()}/test/facility.ifc`,
 	enableMeshHover: true,
 	enableMeshSelection: true,
 	style: { minHeight: '480px' },
-	links: [],
-	selectable: [{ type: 'IfcDistributionControlElement' }],
-	alwaysVisible: [{ type: 'IfcDistributionControlElement' }],
+	links: [
+		{
+			sharedProperty: 'numero pilastro',
+			source: { properties: [{ name: 'numero pilastro' }], linkName: 'sensori' },
+			target: { properties: [{ name: 'ins_codice' }], linkName: 'pilastro' },
+		},
+	],
+	selectable: [
+		{ properties: [{ name: 'Numero Pilastro' }], links: ['sensori'] },
+		{ properties: [{ name: 'ins_codice' }] },
+	],
+	onMeshSelect: ifcElement => {
+		console.log(ifcElement?.userData)
+	},
 	children: (
 		<>
-			<IfcOverlay
-				requirements={{
-					type: 'IfcDistributionControlElement',
-					properties: [{ name: 'Contrassegno' }],
-				}}
-				onSelect={ifcElement => {
-					console.log(ifcElement)
-				}}
-			>
+			<IfcOverlay requirements={{ properties: [{ name: 'ins_codice' }] }}>
 				<IfcGreenMarker hoverEffect />
 			</IfcOverlay>
 			<IfcControls />
 		</>
 	),
 }
+// const defaultProps: IfcViewerProps = {
+// 	url: `${await getPath()}/test/castle.ifc`,
+// 	enableMeshHover: true,
+// 	enableMeshSelection: true,
+// 	style: { minHeight: '480px' },
+// 	links: [],
+// 	selectable: [{ type: 'IfcDistributionControlElement' }],
+// 	alwaysVisible: [{ type: 'IfcDistributionControlElement' }],
+// 	children: (
+// 		<>
+// 			<IfcOverlay
+// 				requirements={{
+// 					type: 'IfcDistributionControlElement',
+// 					properties: [{ name: 'Contrassegno' }],
+// 				}}
+// 				onSelect={ifcElement => {
+// 					console.log(ifcElement)
+// 				}}
+// 			>
+// 				<IfcGreenMarker hoverEffect />
+// 			</IfcOverlay>
+// 			<IfcControls />
+// 		</>
+// 	),
+// }
 
 // const data = JSON.parse(`
 // {

@@ -1,8 +1,7 @@
 import { IfcElement, IfcModel } from '@/classes'
 import type {
-	ExpressId,
 	IfcElementData,
-	LinkRequirements,
+	IfcElementLink,
 	Property,
 	PropertySet,
 	PropertyValue,
@@ -380,40 +379,44 @@ const removePropertiesFromIfcElements = (ifcAllElementsData: IfcElementData[]): 
  * If link requirements are present, it verifies if any linked items also satisfy the requirements.
  * If any requirement is satisfied, the `selectable` property of `ifcElementData` is set to `true`.
  */
-const setIfcDataItemSelectable = (
-	ifcElementData: IfcElementData,
-	allIfcElementsData: IfcElementData[],
-	requirements: SelectableRequirements[],
-): void => {
-	let selectable = false
+const setIfcDataItemSelectable = (ifcElementData: IfcElementData, requirements: SelectableRequirements[]): void => {
+	if (ifcElementData.selectable === true) {
+		return
+	}
+
+	ifcElementData.selectable = false
 
 	for (const selectableRequirement of requirements) {
-		if (selectable) {
-			break
-		}
 		if (!satisfiesRequirements(ifcElementData, selectableRequirement)) {
 			continue
 		}
 
-		const { linkRequirements } = selectableRequirement
+		const { links } = selectableRequirement
 
-		if (!linkRequirements) {
-			selectable = true
+		if (!links) {
+			ifcElementData.selectable = true
 			break
 		}
 
-		const links = ifcElementData.links ?? {}
-		const linkItems = allIfcElementsData.filter(linkItemData => linkItemData.expressId in links)
+		if (!ifcElementData.links) {
+			continue
+		}
 
-		for (const linkItem of linkItems) {
-			if (satisfiesRequirements(linkItem, linkRequirements)) {
-				selectable = true
+		for (const link of links) {
+			if (
+				!(
+					link in ifcElementData.links ||
+					!ifcElementData.links[link] ||
+					ifcElementData.links[link]?.length === 0
+				)
+			) {
 				break
 			}
 		}
-	}
 
-	ifcElementData.selectable = selectable
+		ifcElementData.selectable = true
+		break
+	}
 }
 
 /**
@@ -448,35 +451,53 @@ const setIfcDataAlwaysVisible = (ifcElementData: IfcElementData, requirements: R
 const setIfcDataLinks = (
 	ifcElementData: IfcElementData,
 	allIfcElementsData: IfcElementData[],
-	linkRequirements: LinkRequirements[],
+	linkRequirements: IfcElementLink[],
 ): void => {
-	const links: Record<string, ExpressId[]> = {}
-
 	for (const linkRequirement of linkRequirements) {
-		const { name: linkPropertyName } = linkRequirement
+		const { sharedProperty, source, target } = linkRequirement
 
-		const propertiesToFind: Property[] = []
-
-		const linkPropertyValue = findPropertyValueFromIfcElementData(ifcElementData, linkPropertyName)
-		// If the link property has no value, any comparison can be made, so no relative can be founbd
-		if (!linkPropertyValue) {
-			return
+		if (!satisfiesRequirements(ifcElementData, source)) {
+			continue
 		}
 
-		propertiesToFind.push({ name: linkPropertyName, value: linkPropertyValue })
+		const sourceValue = findPropertyValueFromIfcElementData(ifcElementData, sharedProperty)
 
-		if (linkRequirement.properties) {
-			for (const requiredProperty of linkRequirement.properties) {
-				propertiesToFind.push(requiredProperty)
+		if (!sourceValue) {
+			continue
+		}
+
+		for (const targetIfcElementData of allIfcElementsData) {
+			if (!satisfiesRequirements(targetIfcElementData, target)) {
+				continue
 			}
+
+			const targetValue = findPropertyValueFromIfcElementData(targetIfcElementData, sharedProperty)
+
+			if (!targetValue) {
+				continue
+			}
+
+			if (sourceValue !== targetValue) {
+				continue
+			}
+
+			if (!ifcElementData.links) {
+				ifcElementData.links = {}
+			}
+			if (!ifcElementData.links[source.linkName]) {
+				ifcElementData.links[source.linkName] = []
+			}
+			if (!targetIfcElementData.links) {
+				targetIfcElementData.links = {}
+			}
+			if (!targetIfcElementData.links[target.linkName]) {
+				targetIfcElementData.links[target.linkName] = []
+			}
+
+			ifcElementData.links[source.linkName]?.push(targetIfcElementData.expressId)
+			targetIfcElementData.links[target.linkName]?.push(ifcElementData.expressId)
 		}
-
-		const linkedElements = filterIfcElementsDataByPropertiesAndType(allIfcElementsData, propertiesToFind)
-
-		links[linkPropertyName] = linkedElements.map(linkedItemData => linkedItemData.expressId)
 	}
-
-	ifcElementData.links = links
 }
 
 /**
@@ -491,7 +512,7 @@ const setIfcDataLinks = (
 const processIfcData = (
 	ifcElementData: IfcElementData,
 	allIfcElementsData: IfcElementData[],
-	linkRequirements?: LinkRequirements[],
+	linkRequirements?: IfcElementLink[],
 	selectableRequirements?: SelectableRequirements[],
 	alwaysVisibleRequirements?: Requirements[],
 ) => {
@@ -499,7 +520,7 @@ const processIfcData = (
 		setIfcDataLinks(ifcElementData, allIfcElementsData, linkRequirements)
 	}
 	if (selectableRequirements && selectableRequirements.length > 0) {
-		setIfcDataItemSelectable(ifcElementData, allIfcElementsData, selectableRequirements)
+		setIfcDataItemSelectable(ifcElementData, selectableRequirements)
 	}
 	if (alwaysVisibleRequirements && alwaysVisibleRequirements.length > 0) {
 		setIfcDataAlwaysVisible(ifcElementData, alwaysVisibleRequirements)

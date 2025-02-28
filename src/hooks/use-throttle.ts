@@ -1,12 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 /**
- * Custom hook per il debouncing.
- * @param value - il valore che deve essere debounced.
- * @param delay - il tempo di ritardo (in millisecondi) prima che venga aggiornato il valore.
- * @returns il valore debounced.
+ * Custom hook that throttles the updates to a value.
+ *
+ * @template T - The type of the value to be throttled.
+ * @param {T} value - The value to be throttled.
+ * @param {number} delay - The delay in milliseconds for the throttle.
+ * @returns {T} - The throttled value.
+ *
+ * @example
+ * const throttledValue = useThrottle(value, 500);
  */
-function useThrottle<T>(value: T, delay: number): T {
+const useThrottle = <T>(value: T, delay: number): T => {
 	const [debouncedValue, setDebouncedValue] = useState(value)
 	const lastRun = useRef(Date.now())
 	const timeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined)
@@ -24,7 +29,6 @@ function useThrottle<T>(value: T, delay: number): T {
 		}
 
 		return () => {
-			console.log('Debounced value cleanup')
 			clearTimeout(timeoutRef.current)
 		}
 	}, [delay, update])
