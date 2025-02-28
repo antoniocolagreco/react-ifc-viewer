@@ -3,8 +3,8 @@
 import { Grid } from '@/3d-components/grid'
 import type { IfcElement } from '@/classes'
 import { IfcMesh, IfcModel } from '@/classes'
-import { IfcAnchor, type IfcAnchorProps } from '@/components/ifc-anchor'
 import { type IfcOverlayProps } from '@/components'
+import { IfcAnchor, type IfcAnchorProps } from '@/components/ifc-anchor'
 import { ProgressBar } from '@/components/progress-bar'
 import { IFCViewerLoadingMessages } from '@/costants'
 import { useGlobalState } from '@/hooks/use-global-state'
@@ -601,7 +601,7 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 	useEffect(() => {
 		updateAllMeshesDisplay()
 		renderScene()
-	}, [renderScene, updateAllMeshesDisplay, viewMode])
+	}, [renderScene, updateAllMeshesDisplay])
 
 	const init = useCallback(() => {
 		if (loadingProgress.status !== 'NOT_INITIALIZED') {
