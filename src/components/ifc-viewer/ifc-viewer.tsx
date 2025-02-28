@@ -8,6 +8,7 @@ import { IfcAnchor, type IfcAnchorProps } from '@/components/ifc-anchor'
 import { ProgressBar } from '@/components/progress-bar'
 import { IFCViewerLoadingMessages } from '@/costants'
 import { useGlobalState } from '@/hooks/use-global-state'
+import { useThrottle } from '@/hooks/use-throttle'
 import type {
 	IfcElementData,
 	IfcMarkerLink,
@@ -156,8 +157,6 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 	const renderingEnabledRef = useRef(false)
 	const renderingTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined)
 
-	const [viewMode, setViewMode] = useState<IfcViewMode>('VIEW_MODE_ALL')
-
 	const ifcMarkerLinksRef = useRef<IfcMarkerLink[]>([])
 	const [ifcAnchors, setIfcAnchors] = useState<ReactElement<IfcAnchorProps>[]>()
 	const [ifcViewerChildren, setIfcViewerChildren] = useState<ReactNode[]>()
@@ -166,11 +165,14 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 
 	const [cursorStyle, setCursorStyle] = useState<CSSProperties>({ cursor: 'default' })
 
+	const [viewMode, setViewMode] = useState<IfcViewMode>('VIEW_MODE_ALL')
+
 	const [loadingProgress, setLoadingProgress] = useState<IfcLoadingStatus>({
 		status: 'NOT_INITIALIZED',
 		loaded: 0,
 		total: 0,
 	})
+	const deboucedProgress = useThrottle(loadingProgress, 50)
 
 	useEffect(() => {
 		if (ref) {
@@ -805,7 +807,7 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 				changeViewMode,
 				viewMode,
 			},
-			loadingProgress,
+			loadingProgress: deboucedProgress,
 			model: modelRef.current,
 			selectableElements: modelRef.current.children.filter(ifcElement => ifcElement.userData.selectable),
 			selectByProperty,
@@ -817,7 +819,7 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 		changeViewMode,
 		fitView,
 		focusView,
-		loadingProgress,
+		deboucedProgress,
 		renderScene,
 		resetView,
 		selectByExpressId,
@@ -846,14 +848,14 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 			/>
 			{ifcAnchors}
 			<div className="ifc-children-container">{ifcViewerChildren}</div>
-			{loadingProgress.status !== 'DONE' && (
+			{deboucedProgress.status !== 'DONE' && (
 				<div className="ifc-progress-bar-container">
 					<ProgressBar
-						max={loadingProgress.total ?? 0}
-						value={loadingProgress.loaded ?? 1}
-						state={loadingProgress.status.toUpperCase().includes('ERROR') ? 'ERROR' : 'LOADING'}
+						max={deboucedProgress.total ?? 0}
+						value={deboucedProgress.loaded ?? 1}
+						state={deboucedProgress.status.toUpperCase().includes('ERROR') ? 'ERROR' : 'LOADING'}
 					>
-						{IFCViewerLoadingMessages[loadingProgress.status]}
+						{IFCViewerLoadingMessages[deboucedProgress.status]}
 					</ProgressBar>
 				</div>
 			)}
