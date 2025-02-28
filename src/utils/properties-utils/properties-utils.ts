@@ -438,15 +438,19 @@ const setIfcDataAlwaysVisible = (ifcElementData: IfcElementData, requirements: R
 }
 
 /**
- * Sets the data links for a given IFC element based on specified link requirements.
+ * Sets IFC data links between elements based on specified link requirements.
  *
  * @param ifcElementData - The IFC element data for which links are to be set.
- * @param allIfcElementsData - An array of all IFC elements data to search for potential links.
- * @param linkRequirements - An array of link requirements that specify the properties to be used for linking.
+ * @param allIfcElementsData - An array of all IFC elements data.
+ * @param linkRequirements - An array of link requirements specifying how links should be established.
  *
- * @remarks
- * This function will populate the `links` property of the `ifcElementData` with the IDs of linked elements
- * that match the specified link requirements. If a link property has no value, no links will be created for that property.
+ * This function iterates over the provided link requirements and establishes links between IFC elements
+ * that satisfy the specified requirements. Links are created based on shared property values between
+ * source and target elements. If the source and target elements have matching property values, links
+ * are established between them.
+ *
+ * The function ensures that links are not duplicated and that elements meet the necessary conditions
+ * before links are created.
  */
 const setIfcDataLinks = (
 	ifcElementData: IfcElementData,
@@ -456,31 +460,40 @@ const setIfcDataLinks = (
 	for (const linkRequirement of linkRequirements) {
 		const { sharedProperty, source, target } = linkRequirement
 
+		// Check if the source requirements are satisfied
 		if (!satisfiesRequirements(ifcElementData, source)) {
 			continue
 		}
 
-		const sourceValue = findPropertyValueFromIfcElementData(ifcElementData, sharedProperty)
+		// Check if links already exist
+		if (
+			ifcElementData.links &&
+			(linkRequirement.source.linkName in ifcElementData.links ||
+				linkRequirement.target.linkName in ifcElementData.links)
+		) {
+			continue
+		}
 
+		// Find the source property value
+		const sourceValue = findPropertyValueFromIfcElementData(ifcElementData, sharedProperty)
 		if (!sourceValue) {
 			continue
 		}
 
+		// Iterate over all target elements
 		for (const targetIfcElementData of allIfcElementsData) {
+			// Check if the target requirements are satisfied
 			if (!satisfiesRequirements(targetIfcElementData, target)) {
 				continue
 			}
 
+			// Find the target property value
 			const targetValue = findPropertyValueFromIfcElementData(targetIfcElementData, sharedProperty)
-
-			if (!targetValue) {
+			if (!targetValue || sourceValue !== targetValue) {
 				continue
 			}
 
-			if (sourceValue !== targetValue) {
-				continue
-			}
-
+			// Initialize links if they do not exist
 			if (!ifcElementData.links) {
 				ifcElementData.links = {}
 			}
@@ -494,6 +507,7 @@ const setIfcDataLinks = (
 				targetIfcElementData.links[target.linkName] = []
 			}
 
+			// Add the links
 			ifcElementData.links[source.linkName]?.push(targetIfcElementData.expressId)
 			targetIfcElementData.links[target.linkName]?.push(ifcElementData.expressId)
 		}

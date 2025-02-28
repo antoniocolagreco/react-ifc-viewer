@@ -24,7 +24,7 @@ const MockComponent: FC<MockComponentsProps> = props => {
 		let ifcBuffer: Uint8Array = new Uint8Array()
 
 		await fetchFile(
-			`${await getPath()}/test/castle.ifc`,
+			`${await getPath()}/test/facility.ifc`,
 			buffer => {
 				ifcBuffer = buffer
 			},
@@ -112,9 +112,14 @@ type Story = StoryObj<typeof meta>
 
 const defaultProps: MockComponentsProps = {
 	keepProperties: false,
-	selectableRequirements: [{ properties: [{ name: 'Contrassegno' }], type: 'IfcDistributionControlElement' }],
-	linkRequirements: [],
-	alwaysVisibleRequirements: [],
+	selectableRequirements: [{ properties: [{ name: 'numero pilastro' }], links: ['sensors'] }],
+	linkRequirements: [
+		{
+			sharedProperty: 'numero pilastro',
+			source: { linkName: 'sensors', properties: [{ name: 'numero pilastro' }] },
+			target: { linkName: 'columns', properties: [{ name: 'ins_codice' }] },
+		},
+	],
 }
 
 export const DefaultViewer: Story = {
