@@ -47,6 +47,7 @@ import {
 	Children,
 	useCallback,
 	useEffect,
+	useMemo,
 	useRef,
 	useState,
 	type ComponentPropsWithRef,
@@ -138,6 +139,12 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 	const sceneRef = useRef<Scene>(new Scene())
 	const modelRef = useRef<IfcModel>(undefined)
 	const rayCasterRef = useRef<Raycaster>(new Raycaster())
+
+	const [model, setModel] = useState<IfcModel>()
+	const selectableElements = useMemo(
+		() => model?.children.filter(ifcElement => ifcElement.userData.selectable),
+		[model?.children],
+	)
 
 	const pointerRef = useRef<Vector2>(new Vector2())
 
@@ -692,10 +699,7 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 		rendererRef.current?.dispose()
 	}, [])
 
-	const updateGlobalState = useCallback(() => {
-		if (!modelRef.current) {
-			return
-		}
+	useEffect(() => {
 		setGlobalState({
 			viewPort: {
 				focusView,
@@ -705,12 +709,12 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 				viewMode,
 			},
 			loadingProgress: deboucedProgress,
-			model: modelRef.current,
-			selectableElements: modelRef.current.children.filter(ifcElement => ifcElement.userData.selectable),
+			model,
+			selectableElements,
 			selectByProperty,
 			selectByExpressId,
-			getElementByExpressId: modelRef.current.getIfcElement,
-			getElementsWithData: modelRef.current.getAllElementsWithPropertiesOrValues,
+			getElementByExpressId: model?.getIfcElement,
+			getElementsWithData: model?.getAllElementsWithPropertiesOrValues,
 			renderScene,
 			updateAnchors,
 		})
@@ -719,18 +723,16 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 		deboucedProgress,
 		fitView,
 		focusView,
+		model,
 		renderScene,
 		resetView,
 		selectByExpressId,
 		selectByProperty,
+		selectableElements,
 		setGlobalState,
 		updateAnchors,
 		viewMode,
 	])
-
-	useEffect(() => {
-		updateGlobalState()
-	}, [updateGlobalState])
 
 	const loadFile = useCallback(async (): Promise<void> => {
 		resetScene()
@@ -756,9 +758,9 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 
 		await loadIfcModel(
 			ifcBuffer,
-			model => {
-				modelRef.current = model
-				sceneRef.current.add(model)
+			loadedModel => {
+				modelRef.current = loadedModel
+				sceneRef.current.add(loadedModel)
 
 				alignObject(modelRef.current, { x: 'center', y: 'bottom', z: 'center' })
 
@@ -824,7 +826,7 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 			restoreDataToIfcModelFromProperties(modelRef.current, ifcModelItemsData)
 		}
 
-		updateGlobalState()
+		setModel(modelRef.current)
 		if (onLoad) {
 			onLoad(modelRef.current)
 		}
@@ -838,7 +840,6 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 		renderScene,
 		resetView,
 		selectableRequirements,
-		updateGlobalState,
 		url,
 	])
 
