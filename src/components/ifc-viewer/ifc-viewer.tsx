@@ -810,6 +810,7 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 			selectByProperty,
 			selectByExpressId,
 			getElementByExpressId: modelRef.current.getIfcElement,
+			getElementsWithData: modelRef.current.getAllElementsWithPropertiesOrValues,
 			renderScene,
 			updateAnchors,
 		})

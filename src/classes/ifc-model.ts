@@ -61,6 +61,18 @@ class IfcModel extends Group {
 		return this.children.flatMap(ifcElement => ifcElement.children)
 	}
 
+	getAllElementsWithValues = (): IfcElement[] => {
+		return this.children.filter(IfcElement => IfcElement.userData.values)
+	}
+
+	getAllElementsWithProperties = (): IfcElement[] => {
+		return this.children.filter(IfcElement => IfcElement.userData.properties)
+	}
+
+	getAllElementsWithPropertiesOrValues = (): IfcElement[] => {
+		return this.children.filter(IfcElement => IfcElement.userData.properties || IfcElement.userData.values)
+	}
+
 	getAllElementsData = (): IfcElementData[] => {
 		return this.children.map(IfcElement => IfcElement.userData)
 	}
