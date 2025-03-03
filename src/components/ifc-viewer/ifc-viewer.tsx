@@ -136,7 +136,7 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 	const animationFrameIdRef = useRef<number>(undefined)
 
 	const sceneRef = useRef<Scene>(new Scene())
-	const modelRef = useRef<IfcModel>(new IfcModel())
+	const modelRef = useRef<IfcModel>(undefined)
 	const rayCasterRef = useRef<Raycaster>(new Raycaster())
 
 	const pointerRef = useRef<Vector2>(new Vector2())
@@ -185,6 +185,10 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 	}, [ref])
 
 	const processIfcMarker = useCallback((ifcMarkerElement: ReactElement<IfcOverlayProps>): IfcMarkerLink[] => {
+		if (!modelRef.current) {
+			return []
+		}
+
 		const newMarkerLinks: IfcMarkerLink[] = []
 		const markerRequirements = ifcMarkerElement.props.requirements
 		const props = ifcMarkerElement.props
@@ -243,6 +247,10 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 	}
 
 	const updateBoundingSphere = useCallback((): void => {
+		if (!modelRef.current) {
+			return
+		}
+
 		const meshes: IfcMesh[] = selectedIfcElementRef.current?.children ?? modelRef.current.getAllMeshes()
 
 		boundingSphereRef.current = createBoundingSphere(meshes)
@@ -260,6 +268,10 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 
 	const updateMeshDisplay = useCallback(
 		(ifcElement: IfcElement) => {
+			if (!modelRef.current) {
+				return
+			}
+
 			if (ifcElement === selectedIfcElementRef.current) {
 				setMaterialToSelected(ifcElement, modelRef.current, selectedColor)
 			} else if (ifcElement === hoveredIfcElementRef.current) {
@@ -293,6 +305,9 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 	)
 
 	const updateAllMeshesDisplay = useCallback(() => {
+		if (!modelRef.current) {
+			return
+		}
 		for (const ifcElement of modelRef.current.children) {
 			updateMeshDisplay(ifcElement)
 		}
@@ -548,10 +563,11 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 
 	const selectByExpressId = useCallback(
 		(expressId: number | undefined): void => {
-			if (!expressId) {
+			if (!modelRef.current || !expressId) {
 				select()
 				return undefined
 			}
+
 			const ifcElement = modelRef.current.getIfcElement(expressId)
 			select(ifcElement)
 		},
@@ -560,6 +576,10 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 
 	const selectByProperty = useCallback(
 		(property: Property | undefined): IfcElement | undefined => {
+			if (!modelRef.current) {
+				select()
+				return undefined
+			}
 			if (!property) {
 				select()
 				return undefined
@@ -673,6 +693,9 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 	}, [])
 
 	const updateGlobalState = useCallback(() => {
+		if (!modelRef.current) {
+			return
+		}
 		setGlobalState({
 			viewPort: {
 				focusView,
@@ -752,6 +775,10 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 		)
 
 		let ifcModelItemsData: IfcElementData[] = []
+
+		if (!modelRef.current) {
+			throw new Error('Model not found')
+		}
 
 		if (data) {
 			ifcModelItemsData = data

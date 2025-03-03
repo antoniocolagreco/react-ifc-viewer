@@ -22,7 +22,7 @@ const defaultProps: IfcViewerProps = {
 	enableMeshHover: true,
 	enableMeshSelection: true,
 	onLoad: model => {
-		console.log(model)
+		console.log('onload', model)
 	},
 	style: { minHeight: '480px' },
 	links: [
