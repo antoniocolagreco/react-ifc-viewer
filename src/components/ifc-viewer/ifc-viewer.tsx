@@ -166,8 +166,6 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 
 	const [loadingProgress, setLoadingProgress] = useState<IfcLoadingStatus>({
 		status: 'NOT_INITIALIZED',
-		loaded: 0,
-		total: 0,
 	})
 
 	const deboucedProgress = useThrottle(loadingProgress, 50)
@@ -693,7 +691,7 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 		rendererRef.current?.dispose()
 	}, [])
 
-	useEffect(() => {
+	const updateGlobalState = useCallback(() => {
 		setGlobalState({
 			viewPort: {
 				focusView,
@@ -725,6 +723,10 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 		updateAnchors,
 		viewMode,
 	])
+
+	useEffect(() => {
+		updateGlobalState()
+	}, [updateGlobalState])
 
 	const loadFile = useCallback(async (): Promise<void> => {
 		resetScene()
@@ -822,7 +824,7 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 			onModelLoaded(modelRef.current)
 		}
 
-		setLoadingProgress({ loaded: 1, total: 1, status: 'DONE' })
+		setLoadingProgress({ status: 'DONE' })
 	}, [
 		alwaysVisibleRequirements,
 		data,
@@ -875,8 +877,8 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 			{deboucedProgress.status !== 'DONE' && (
 				<div className="ifc-progress-bar-container">
 					<ProgressBar
-						max={deboucedProgress.total ?? 0}
-						value={deboucedProgress.loaded ?? 1}
+						max={deboucedProgress.total}
+						value={deboucedProgress.loaded}
 						state={deboucedProgress.status.toUpperCase().includes('ERROR') ? 'ERROR' : 'LOADING'}
 					>
 						{IFCViewerLoadingMessages[deboucedProgress.status]}

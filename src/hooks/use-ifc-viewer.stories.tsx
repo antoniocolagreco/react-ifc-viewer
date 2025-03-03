@@ -112,7 +112,7 @@ type Story = StoryObj<typeof meta>
 
 const defaultProps: MockComponentsProps = {
 	keepProperties: false,
-	selectableRequirements: [{ properties: [{ name: 'numero pilastro' }], links: ['sensors'] }],
+	selectableRequirements: [{ properties: [{ name: 'numero pilastro' }], links: ['sensors'], type: 'IfcColumn' }],
 	linkRequirements: [
 		{
 			sharedProperty: 'numero pilastro',

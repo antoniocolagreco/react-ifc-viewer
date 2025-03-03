@@ -5,8 +5,8 @@ import './progress-bar.css'
 type ProgressBarState = 'LOADING' | 'DONE' | 'ERROR'
 
 type ProgressProps = Omit<ComponentPropsWithRef<'div'>, 'children'> & {
-	max: number
-	value: number
+	max: number | undefined
+	value: number | undefined
 	backgroundClassName?: string
 	loadingClassName?: string
 	successClassName?: string
@@ -30,7 +30,7 @@ const ProgressBar: FC<ProgressProps> = props => {
 		...rest
 	} = props
 
-	const percentage = Math.round((100 / max) * value)
+	const percentage = max && value ? Math.round((100 / max) * value) : 100
 
 	const progressBarStyle: CSSProperties = {
 		width: `${percentage.toString()}%`,

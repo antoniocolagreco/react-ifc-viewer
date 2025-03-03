@@ -11,7 +11,7 @@ type IfcElementDataRecord = Record<number, Omit<IfcElementData, 'expressId'>>
  */
 const extractDataToSave = (ifcElementsData: IfcElementData[], keepProperties = false): IfcElementDataRecord => {
 	const ifcElementsDataToSave = ifcElementsData.filter(
-		ifcElement => ifcElement.alwaysVisible || ifcElement.selectable,
+		ifcElement => ifcElement.alwaysVisible || ifcElement.selectable || ifcElement.links || ifcElement.values,
 	)
 	const saveData: IfcElementDataRecord = {}
 	for (const ifcElementData of ifcElementsDataToSave) {
