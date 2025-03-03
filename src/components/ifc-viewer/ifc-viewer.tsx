@@ -809,6 +809,7 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 			selectableElements: modelRef.current.children.filter(ifcElement => ifcElement.userData.selectable),
 			selectByProperty,
 			selectByExpressId,
+			getElementByExpressId: modelRef.current.getIfcElement,
 			renderScene,
 			updateAnchors,
 		})

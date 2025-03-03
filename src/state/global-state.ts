@@ -15,6 +15,7 @@ type GlobalStateData = {
 	selectableElements: IfcElement[]
 	selectByProperty: (property: Property) => void
 	selectByExpressId: (expressId: number | undefined) => void
+	getElementByExpressId: (expressId: number) => IfcElement | undefined
 	updateAnchors: () => void
 	renderScene: () => void
 }
@@ -49,6 +50,8 @@ const globalState: GlobalState = {
 		selectableElements: [],
 		selectByProperty: () => {},
 		selectByExpressId: () => {},
+		// eslint-disable-next-line unicorn/no-useless-undefined
+		getElementByExpressId: () => undefined,
 		updateAnchors: () => {},
 		renderScene: () => {},
 	},
