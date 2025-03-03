@@ -1,7 +1,7 @@
-import type { GeometryId, IfcElementData, IfcModelData, MaterialId } from '@/types'
-import { Group, type BufferGeometry, type MeshLambertMaterial } from 'three'
-import { IfcElement } from '@/classes'
 import type { IfcMesh } from '@/classes'
+import { IfcElement } from '@/classes'
+import type { GeometryId, IfcModelData, MaterialId } from '@/types'
+import { Group, type BufferGeometry, type MeshLambertMaterial } from 'three'
 
 class IfcModel extends Group {
 	override name: string = 'IfcModel'
@@ -49,7 +49,7 @@ class IfcModel extends Group {
 		return this.children.find(ifcElement => ifcElement.userData.expressId === expressId)
 	}
 
-	getSeletableIfcElements = (): IfcElement[] => {
+	getAllSeletableElements = (): IfcElement[] => {
 		return this.children.filter(ifcElement => ifcElement.isSelectable())
 	}
 
@@ -71,10 +71,6 @@ class IfcModel extends Group {
 
 	getAllElementsWithPropertiesOrValues = (): IfcElement[] => {
 		return this.children.filter(IfcElement => IfcElement.userData.properties || IfcElement.userData.values)
-	}
-
-	getAllElementsData = (): IfcElementData[] => {
-		return this.children.map(IfcElement => IfcElement.userData)
 	}
 }
 

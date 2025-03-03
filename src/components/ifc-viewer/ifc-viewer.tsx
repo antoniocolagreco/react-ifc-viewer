@@ -47,7 +47,6 @@ import {
 	Children,
 	useCallback,
 	useEffect,
-	useMemo,
 	useRef,
 	useState,
 	type ComponentPropsWithRef,
@@ -162,11 +161,6 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 	const [ifcAnchors, setIfcAnchors] = useState<ReactElement<IfcAnchorProps>[]>()
 	const [ifcViewerChildren, setIfcViewerChildren] = useState<ReactNode[]>()
 
-	const [model, setModel] = useState<IfcModel>()
-	const selectableElements = useMemo(
-		() => model?.children.filter(ifcElement => ifcElement.userData.selectable),
-		[model?.children],
-	)
 	const [viewMode, setViewMode] = useState<IfcViewMode>('VIEW_MODE_ALL')
 	const [cursorStyle, setCursorStyle] = useState<CSSProperties>({ cursor: 'default' })
 
@@ -232,6 +226,7 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 		}
 
 		ifcMarkerLinksRef.current = newMarkerLinks
+
 		setIfcViewerChildren(newChildren)
 	}, [children, processIfcMarker])
 
@@ -708,12 +703,12 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 				viewMode,
 			},
 			loadingProgress: deboucedProgress,
-			model,
-			selectableElements,
+			model: modelRef.current,
+			selectableElements: modelRef.current?.getAllSeletableElements(),
 			selectByProperty,
 			selectByExpressId,
-			getElementByExpressId: model?.getIfcElement,
-			getElementsWithData: model?.getAllElementsWithPropertiesOrValues,
+			getElementByExpressId: modelRef.current?.getIfcElement,
+			getElementsWithData: modelRef.current?.getAllElementsWithPropertiesOrValues,
 			renderScene,
 			updateAnchors,
 		})
@@ -722,12 +717,10 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 		deboucedProgress,
 		fitView,
 		focusView,
-		model,
 		renderScene,
 		resetView,
 		selectByExpressId,
 		selectByProperty,
-		selectableElements,
 		setGlobalState,
 		updateAnchors,
 		viewMode,
@@ -825,7 +818,6 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 			restoreDataToIfcModelFromProperties(modelRef.current, ifcModelItemsData)
 		}
 
-		setModel(modelRef.current)
 		if (onModelLoaded) {
 			onModelLoaded(modelRef.current)
 		}

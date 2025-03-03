@@ -14,7 +14,7 @@ const basicConfig = defineConfig({
 	plugins: [
 		react(),
 		dts({
-			rollupTypes: true,
+			rollupTypes: false,
 			strictOutput: true,
 			exclude: ['src/test', '**/*.stories.tsx', '**/*.test.tsx'],
 		}),

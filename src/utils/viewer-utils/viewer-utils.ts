@@ -30,7 +30,12 @@ const transformViewportPositionToScreenPosition = (
 	return { x, y }
 }
 
-const setMaterialToSelected = (ifcElement: IfcElement, ifcModel: IfcModel, color: number = 0x16a34a): void => {
+const setMaterialToSelected = (
+	ifcElement: IfcElement,
+	ifcModel: IfcModel,
+	color: number = 0x16a34a,
+	depthTest = true,
+): void => {
 	ifcElement.visible = true
 	for (const ifcMesh of ifcElement.children) {
 		let selectedMaterial = ifcModel.getElementSelectMaterial(ifcMesh.userData.materialId)
@@ -47,13 +52,19 @@ const setMaterialToSelected = (ifcElement: IfcElement, ifcModel: IfcModel, color
 		selectedMaterial.color = mixedColor
 		selectedMaterial.emissive.setHex(color)
 		selectedMaterial.emissiveIntensity = 1
+		selectedMaterial.depthTest = depthTest
 
 		ifcMesh.material = selectedMaterial
 		ifcMesh.renderOrder = 1
 	}
 }
 
-const setMaterialToHovered = (ifcElement: IfcElement, ifcModel: IfcModel, color: number = 0xffffff): void => {
+const setMaterialToHovered = (
+	ifcElement: IfcElement,
+	ifcModel: IfcModel,
+	color: number = 0xffffff,
+	depthTest = true,
+): void => {
 	ifcElement.visible = true
 
 	for (const ifcMesh of ifcElement.children) {
@@ -72,6 +83,7 @@ const setMaterialToHovered = (ifcElement: IfcElement, ifcModel: IfcModel, color:
 		hoveredMaterial.color = mixedColor
 		hoveredMaterial.emissive.setHex(color)
 		hoveredMaterial.emissiveIntensity = 0.1
+		hoveredMaterial.depthTest = depthTest
 
 		ifcMesh.material = hoveredMaterial
 		ifcMesh.renderOrder = 1

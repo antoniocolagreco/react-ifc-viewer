@@ -12,7 +12,7 @@ type GlobalStateData = {
 	}
 	loadingProgress: IfcLoadingStatus
 	model: IfcModel | undefined
-	selectableElements: IfcElement[]
+	selectableElements: IfcElement[] | undefined
 	selectByProperty: (property: Property) => void
 	selectByExpressId: (expressId: number | undefined) => void
 	getElementByExpressId: (expressId: number) => IfcElement | undefined
