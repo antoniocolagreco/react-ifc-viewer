@@ -11,9 +11,9 @@ import { useGlobalState } from '@/hooks/use-global-state'
 import { useThrottle } from '@/hooks/use-throttle'
 import type {
 	IfcElementData,
+	IfcElementLink,
 	IfcMarkerLink,
 	LambertMesh,
-	IfcElementLink,
 	Property,
 	Requirements,
 	SelectableRequirements,
@@ -425,16 +425,13 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 
 		const selectableIfcMeshes = allIntersections.filter(intersection => {
 			if (intersection.object instanceof IfcMesh) {
-				if (selectableRequirements && selectableRequirements.length > 0) {
-					return intersection.object.parent.userData.selectable
-				}
-				return true
+				return intersection.object.parent.userData.selectable
 			}
 			return false
 		}) as Intersection<IfcMesh>[]
 
 		selectableIntersectionsRef.current = selectableIfcMeshes
-	}, [selectableRequirements])
+	}, [])
 
 	const handleMouseLeave = useCallback((): void => {
 		hover()

@@ -384,6 +384,11 @@ const setIfcDataItemSelectable = (ifcElementData: IfcElementData, requirements: 
 		return
 	}
 
+	if (requirements.length === 0) {
+		ifcElementData.selectable = true
+		return
+	}
+
 	ifcElementData.selectable = false
 
 	for (const selectableRequirement of requirements) {
@@ -533,10 +538,10 @@ const processIfcData = (
 	if (linkRequirements && linkRequirements.length > 0) {
 		setIfcDataLinks(ifcElementData, allIfcElementsData, linkRequirements)
 	}
-	if (selectableRequirements && selectableRequirements.length > 0) {
+	if (selectableRequirements) {
 		setIfcDataItemSelectable(ifcElementData, selectableRequirements)
 	}
-	if (alwaysVisibleRequirements && alwaysVisibleRequirements.length > 0) {
+	if (alwaysVisibleRequirements) {
 		setIfcDataAlwaysVisible(ifcElementData, alwaysVisibleRequirements)
 	}
 }
