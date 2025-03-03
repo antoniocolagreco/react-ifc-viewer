@@ -27,7 +27,8 @@ const transformViewportPositionToScreenPosition = (
 
 	const x = vector.x * widthHalf + widthHalf
 	const y = -(vector.y * heightHalf) + heightHalf
-	return { x, y }
+
+	return { x: Number.isFinite(x) ? x : 0, y: Number.isFinite(y) ? y : 0 }
 }
 
 const setMaterialToSelected = (
