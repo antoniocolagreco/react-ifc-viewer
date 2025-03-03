@@ -1,7 +1,7 @@
 import { getPath } from '@/utils'
 import type { Meta, StoryObj } from '@storybook/react'
 import { IfcControls } from '../ifc-controls/ifc-controls'
-import { IfcGreenMarker } from '../ifc-marker'
+import { IfcGreenMarker, IfcRedMarker } from '../ifc-marker'
 import { IfcOverlay } from '../ifc-overlay'
 import { IfcViewer, type IfcViewerProps } from './ifc-viewer'
 
@@ -38,8 +38,11 @@ const defaultProps: IfcViewerProps = {
 	},
 	children: (
 		<>
-			<IfcOverlay requirements={{ properties: [{ name: 'ins_codice' }] }}>
+			<IfcOverlay requirements={{ properties: [{ name: 'ins_codice', value: '1' }] }}>
 				<IfcGreenMarker hoverEffect />
+			</IfcOverlay>
+			<IfcOverlay requirements={{ properties: [{ name: 'ins_codice', value: '2' }] }}>
+				<IfcRedMarker hoverEffect />
 			</IfcOverlay>
 			<IfcControls />
 		</>

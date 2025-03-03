@@ -220,7 +220,7 @@ const findPropertyInIfcData = (ifcElementData: IfcElementData, propertyToFind: P
 		for (const [name, value] of Object.entries(values)) {
 			if (name === keyToFind) {
 				if (valueToFind) {
-					if (valueToFind === value) {
+					if (String(valueToFind) === String(value)) {
 						return { name, value }
 					}
 				} else {
