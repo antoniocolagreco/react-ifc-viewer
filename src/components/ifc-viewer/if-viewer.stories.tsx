@@ -21,6 +21,9 @@ const defaultProps: IfcViewerProps = {
 	url: `${await getPath()}/test/facility.ifc`,
 	enableMeshHover: true,
 	enableMeshSelection: true,
+	onLoad: model => {
+		console.log(model)
+	},
 	style: { minHeight: '480px' },
 	links: [
 		{

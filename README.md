@@ -21,13 +21,13 @@ npm install react-ifc-viewer
 - **Selectable Meshes:** You can hover or select meshes, and custom events can be attached to them.
 - **Overlays:** You can overlay custom components on meshes, such as markers or labels, but any React component will work.
 - **ViewModes:** You can switch between different view modes (using a function in the `useIfcViewer` hook):
-    - Default: The default view mode.
-    - Transparent: Only the selectable meshes and the ones marked as always visible are displayed; everything else becomes half-transparent.
-    - OnlySelectable: Only the selectable meshes and the ones marked as always visible are displayed; everything else is hidden.
+  - Default: The default view mode.
+  - Transparent: Only the selectable meshes and the ones marked as always visible are displayed; everything else becomes half-transparent.
+  - OnlySelectable: Only the selectable meshes and the ones marked as always visible are displayed; everything else is hidden.
 - **Property-Based Selection:** To locate elements, the library performs an initial full scan of the IFC model’s properties. While this can be slow for large models, optimizations are available:
-    - A function is provided (through the `useIfcViewer` hook) to analyze the IFC model and generate a serializable object containing all properties.
-    - Then, this JSON string can be saved and loaded later to skip the initial scan, enabling instant element detection.
-    - You can drop all the properties while keeping just the specified ones to now waste space. JSON is very inefficient but simple.
+  - A function is provided (through the `useIfcViewer` hook) to analyze the IFC model and generate a serializable object containing all properties.
+  - Then, this JSON string can be saved and loaded later to skip the initial scan, enabling instant element detection.
+  - You can drop all the properties while keeping just the specified ones to now waste space. JSON is very inefficient but simple.
 - **Controls:** You can navigate the model using mouse, left click to rotate and right click to move. There is a hook that adds extra functionalities to the viewer, such as focusing the view on selection, fitting and centering the view on selection, and resetting the viewport.
 - **Efficient Rendering:** The scene is rerendered only while interacting with the viewport.
 
@@ -43,20 +43,20 @@ Below is an example demonstrating how to use the viewer:
 
 ```jsx
 <IfcViewer url="/test/castle.ifc" enableMeshHover enableMeshSelection>
-	<IfcOverlay
-		requirements={{
-			type: 'IfcDistributionControlElement',
-			properties: [{ name: 'Contrassegno', value: '1' }],
-		}}
-		onSelect={data => {
-			console.log(data)
-		}}
-		onHover={data => {
-			console.log(data)
-		}}
-	>
-		<IfcGreenMarker hoverEffect />
-	</IfcOverlay>
-	<IfcControls />
+  <IfcOverlay
+    requirements={{
+      type: 'IfcDistributionControlElement',
+      properties: [{ name: 'Contrassegno', value: '1' }],
+    }}
+    onSelect={data => {
+      console.log(data)
+    }}
+    onHover={data => {
+      console.log(data)
+    }}
+  >
+    <IfcGreenMarker hoverEffect />
+  </IfcOverlay>
+  <IfcControls />
 </IfcViewer>
 ```

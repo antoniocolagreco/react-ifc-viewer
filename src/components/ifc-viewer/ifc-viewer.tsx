@@ -78,7 +78,7 @@ type IfcViewerProps = ComponentPropsWithRef<'div'> & {
 	url: string
 	data?: IfcElementData[]
 
-	onLoad?: () => void
+	onLoad?: (model: IfcModel) => void
 
 	hoverColor?: number
 	selectedColor?: number
@@ -672,6 +672,43 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 		rendererRef.current?.dispose()
 	}, [])
 
+	const updateGlobalState = useCallback(() => {
+		setGlobalState({
+			viewPort: {
+				focusView,
+				fitView,
+				resetView,
+				changeViewMode,
+				viewMode,
+			},
+			loadingProgress: deboucedProgress,
+			model: modelRef.current,
+			selectableElements: modelRef.current.children.filter(ifcElement => ifcElement.userData.selectable),
+			selectByProperty,
+			selectByExpressId,
+			getElementByExpressId: modelRef.current.getIfcElement,
+			getElementsWithData: modelRef.current.getAllElementsWithPropertiesOrValues,
+			renderScene,
+			updateAnchors,
+		})
+	}, [
+		changeViewMode,
+		deboucedProgress,
+		fitView,
+		focusView,
+		renderScene,
+		resetView,
+		selectByExpressId,
+		selectByProperty,
+		setGlobalState,
+		updateAnchors,
+		viewMode,
+	])
+
+	useEffect(() => {
+		updateGlobalState()
+	}, [updateGlobalState])
+
 	const loadFile = useCallback(async (): Promise<void> => {
 		resetScene()
 
@@ -760,8 +797,9 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 			restoreDataToIfcModelFromProperties(modelRef.current, ifcModelItemsData)
 		}
 
+		updateGlobalState()
 		if (onLoad) {
-			onLoad()
+			onLoad(modelRef.current)
 		}
 
 		setLoadingProgress({ loaded: 1, total: 1, status: 'DONE' })
@@ -773,6 +811,7 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 		renderScene,
 		resetView,
 		selectableRequirements,
+		updateGlobalState,
 		url,
 	])
 
@@ -794,39 +833,6 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 		processChildren()
 		updateAnchors()
 	}, [init, loadFile, processChildren, resetView, updateAnchors, url])
-
-	useEffect(() => {
-		setGlobalState({
-			viewPort: {
-				focusView,
-				fitView,
-				resetView,
-				changeViewMode,
-				viewMode,
-			},
-			loadingProgress: deboucedProgress,
-			model: modelRef.current,
-			selectableElements: modelRef.current.children.filter(ifcElement => ifcElement.userData.selectable),
-			selectByProperty,
-			selectByExpressId,
-			getElementByExpressId: modelRef.current.getIfcElement,
-			getElementsWithData: modelRef.current.getAllElementsWithPropertiesOrValues,
-			renderScene,
-			updateAnchors,
-		})
-	}, [
-		changeViewMode,
-		fitView,
-		focusView,
-		deboucedProgress,
-		renderScene,
-		resetView,
-		selectByExpressId,
-		selectByProperty,
-		setGlobalState,
-		updateAnchors,
-		viewMode,
-	])
 
 	useEffect(() => {
 		return () => {
