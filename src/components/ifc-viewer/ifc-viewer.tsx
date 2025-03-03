@@ -79,7 +79,7 @@ type IfcViewerProps = ComponentPropsWithRef<'div'> & {
 	url: string
 	data?: IfcElementData[]
 
-	onLoad?: (model: IfcModel) => void
+	onModelLoaded?: (model: IfcModel) => void
 
 	hoverColor?: number
 	selectedColor?: number
@@ -106,7 +106,7 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 		hoverColor,
 		selectedColor,
 
-		onLoad,
+		onModelLoaded,
 
 		links: linksRequirements,
 		selectable: selectableRequirements,
@@ -140,12 +140,6 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 	const modelRef = useRef<IfcModel>(undefined)
 	const rayCasterRef = useRef<Raycaster>(new Raycaster())
 
-	const [model, setModel] = useState<IfcModel>()
-	const selectableElements = useMemo(
-		() => model?.children.filter(ifcElement => ifcElement.userData.selectable),
-		[model?.children],
-	)
-
 	const pointerRef = useRef<Vector2>(new Vector2())
 
 	const boundingSphereRef = useRef<Sphere>(undefined)
@@ -168,18 +162,23 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 	const [ifcAnchors, setIfcAnchors] = useState<ReactElement<IfcAnchorProps>[]>()
 	const [ifcViewerChildren, setIfcViewerChildren] = useState<ReactNode[]>()
 
-	const { setGlobalState } = useGlobalState()
-
-	const [cursorStyle, setCursorStyle] = useState<CSSProperties>({ cursor: 'default' })
-
+	const [model, setModel] = useState<IfcModel>()
+	const selectableElements = useMemo(
+		() => model?.children.filter(ifcElement => ifcElement.userData.selectable),
+		[model?.children],
+	)
 	const [viewMode, setViewMode] = useState<IfcViewMode>('VIEW_MODE_ALL')
+	const [cursorStyle, setCursorStyle] = useState<CSSProperties>({ cursor: 'default' })
 
 	const [loadingProgress, setLoadingProgress] = useState<IfcLoadingStatus>({
 		status: 'NOT_INITIALIZED',
 		loaded: 0,
 		total: 0,
 	})
+
 	const deboucedProgress = useThrottle(loadingProgress, 50)
+
+	const { setGlobalState } = useGlobalState()
 
 	useEffect(() => {
 		if (ref) {
@@ -827,8 +826,8 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 		}
 
 		setModel(modelRef.current)
-		if (onLoad) {
-			onLoad(modelRef.current)
+		if (onModelLoaded) {
+			onModelLoaded(modelRef.current)
 		}
 
 		setLoadingProgress({ loaded: 1, total: 1, status: 'DONE' })
@@ -836,7 +835,7 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 		alwaysVisibleRequirements,
 		data,
 		linksRequirements,
-		onLoad,
+		onModelLoaded,
 		renderScene,
 		resetView,
 		selectableRequirements,
