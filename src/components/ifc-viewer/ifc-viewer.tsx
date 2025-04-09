@@ -352,7 +352,7 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 			switchSelectedMesh()
 			renderScene()
 
-			if (onMeshSelect) {
+			if (ifcElement && onMeshSelect) {
 				onMeshSelect(ifcElement)
 			}
 		},
@@ -373,7 +373,7 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 			}
 			setCursorStyle({ cursor: 'default' })
 
-			if (onMeshHover) {
+			if (ifcElement && onMeshHover) {
 				onMeshHover(ifcElement)
 			}
 		},
