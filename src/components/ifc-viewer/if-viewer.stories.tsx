@@ -1,6 +1,6 @@
 import { getPath } from '@/utils'
 import type { Meta, StoryObj } from '@storybook/react'
-import type { IfcElement } from 'dist'
+import { type IfcElement } from 'dist'
 import { useState } from 'react'
 import { IfcControls } from '../ifc-controls/ifc-controls'
 import { IfcGreenMarker, IfcRedMarker } from '../ifc-marker'
@@ -58,6 +58,9 @@ const defaultProps: IfcViewerProps = {
 		{ properties: [{ name: 'Numero Pilastro' }], links: ['sensori'] },
 		{ properties: [{ name: 'ins_codice' }] },
 	],
+	onModelLoaded: () => {
+		console.log('Model loaded')
+	},
 	onMeshSelect: ifcElement => {
 		console.log(ifcElement?.userData)
 	},

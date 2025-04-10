@@ -298,6 +298,7 @@ const filterIfcElementsDataByPropertiesAndType = (
 	propertiesToFind: Property[],
 	type?: string,
 	tag?: Tag,
+	expressId?: number,
 ): IfcElementData[] => {
 	const foundElements: IfcElementData[] = []
 
@@ -308,7 +309,11 @@ const filterIfcElementsDataByPropertiesAndType = (
 
 		if (!current) continue
 
-		if (matchPropertiesAndType(current, propertiesToFind, type) && matchTag(current, tag)) {
+		if (
+			matchPropertiesAndType(current, propertiesToFind, type) &&
+			matchTag(current, tag) &&
+			current.expressId === expressId
+		) {
 			foundElements.push(current)
 		}
 	}
@@ -316,19 +321,12 @@ const filterIfcElementsDataByPropertiesAndType = (
 	return foundElements
 }
 
-/**
- * Filters IFC elements by specified properties and type.
- *
- * @param ifcModel - The IFC model containing elements to filter.
- * @param propertiesToFind - An array of properties to match against the elements. Defaults to an empty array.
- * @param type - An optional type to match against the elements.
- * @returns An array of IFC elements that match the specified properties and type.
- */
 const filterIfcElementsByPropertiesAndType = (
 	ifcModel: IfcModel,
 	propertiesToFind: Property[] = [],
 	type?: string,
 	tag?: Tag,
+	expressId?: number,
 ): IfcElement[] => {
 	const foundElements: IfcElement[] = []
 
@@ -339,7 +337,11 @@ const filterIfcElementsByPropertiesAndType = (
 
 		if (!current) continue
 
-		if (matchPropertiesAndType(current.userData, propertiesToFind, type) && matchTag(current.userData, tag)) {
+		const isMatchingPropsAndType = matchPropertiesAndType(current.userData, propertiesToFind, type)
+		const isMatchingTag = matchTag(current.userData, tag)
+		const isMatchingExpressId = current.userData.expressId === expressId
+
+		if (isMatchingPropsAndType && isMatchingTag && isMatchingExpressId) {
 			foundElements.push(current)
 		}
 	}
@@ -366,8 +368,17 @@ const satisfiesRequirements = (ifcElementData: IfcElementData, requirements: Req
 	}
 
 	// Check if the object has no properties and no tag
-	if ((!requirements.properties || requirements.properties.length === 0) && !requirements.tag) {
+	if (
+		(!requirements.properties || requirements.properties.length === 0) &&
+		!requirements.tag &&
+		!requirements.expressId
+	) {
 		return true
+	}
+
+	// Check if the object has the required expressId
+	if (ifcElementData.expressId !== requirements.expressId) {
+		return false
 	}
 
 	// Check if the object has the required tag

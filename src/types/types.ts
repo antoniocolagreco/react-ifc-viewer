@@ -46,7 +46,7 @@ type PropertySet = {
 	properties: Property[]
 }
 
-type Requirements = { type?: string; properties?: Property[]; tag?: Tag }
+type Requirements = { type?: string; properties?: Property[]; tag?: Tag; expressId?: ExpressId }
 
 type SelectableRequirements = Requirements & { links?: string[] }
 type MarkerRequirements = Requirements & { children: ReactNode }

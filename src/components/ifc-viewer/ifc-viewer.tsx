@@ -195,6 +195,8 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 			modelRef.current,
 			markerRequirements.properties,
 			markerRequirements.type,
+			markerRequirements.tag,
+			markerRequirements.expressId,
 		)
 
 		for (const element of ifcElements) {
