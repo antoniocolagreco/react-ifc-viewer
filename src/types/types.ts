@@ -7,6 +7,7 @@ type ExpressId = number
 
 type IfcElementData = {
 	expressId: ExpressId
+	tag?: Tag
 	type?: string
 	name?: string | undefined
 	properties?: PropertySet[] | undefined
@@ -34,6 +35,8 @@ type LambertMesh = Mesh<BufferGeometry, MeshLambertMaterial>
 
 type ShaderMesh = Mesh<BufferGeometry, ShaderMaterial>
 
+type Tag = { value?: string; type?: number; name?: string }
+
 type PropertyValue = string | number | number[] | boolean | undefined
 
 type Property = { name: string; value?: PropertyValue }
@@ -43,7 +46,7 @@ type PropertySet = {
 	properties: Property[]
 }
 
-type Requirements = { type?: string; properties?: Property[] }
+type Requirements = { type?: string; properties?: Property[]; tag?: Tag }
 
 type SelectableRequirements = Requirements & { links?: string[] }
 type MarkerRequirements = Requirements & { children: ReactNode }
@@ -90,4 +93,5 @@ export type {
 	Requirements,
 	SelectableRequirements,
 	ShaderMesh,
+	Tag,
 }

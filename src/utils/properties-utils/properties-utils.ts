@@ -7,6 +7,7 @@ import type {
 	PropertyValue,
 	Requirements,
 	SelectableRequirements,
+	Tag,
 } from '@/types'
 import {
 	IFC2X3,
@@ -41,6 +42,8 @@ import {
 const getIfcElementTypeAndProperties = (ifcAPI: IfcAPI, modelID: number, expressId: number): IfcElementData => {
 	const data = ifcAPI.GetLine(modelID, expressId, true, true) as IFC2X3.IfcBuildingElement
 	const type = ifcAPI.GetNameFromTypeCode(data.type)
+	const tag = data.Tag ?? undefined
+	const name = data.Name?.value ?? ''
 
 	// Array per raccogliere tutte le relazioni trovate
 	const relations: (IFC2X3.IfcRelDefines | IFC2X3.IfcRelAggregates | IFC2X3.IfcRelAssigns)[] = []
@@ -121,7 +124,8 @@ const getIfcElementTypeAndProperties = (ifcAPI: IfcAPI, modelID: number, express
 	return {
 		expressId,
 		type,
-		name: data.Name?.value ?? '',
+		tag,
+		name,
 		properties: propertySets,
 	}
 }
@@ -194,6 +198,23 @@ const matchPropertiesAndType = (
 	}
 	// Se tutte le proprietà corrispondono, ritorna true
 
+	return true
+}
+
+/**
+ * Determines whether a given IFC element's tag matches the specified tag criteria.
+ *
+ * @param ifcElementData - The data of the IFC element, which may include a tag to be matched.
+ * @param tag - The tag criteria to match against. If not provided, the function returns `true`.
+ * @returns `true` if the IFC element's tag matches the specified criteria or if no criteria are provided; otherwise, `false`.
+ */
+const matchTag = (ifcElementData: IfcElementData, tag?: Tag): boolean => {
+	console.log('checking tag', ifcElementData.tag, tag)
+	if (!tag) return true
+	if (!ifcElementData.tag) return false
+	if (tag.name && ifcElementData.tag.name !== tag.name) return false
+	if (tag.type && ifcElementData.tag.type !== tag.type) return false
+	if (tag.value && ifcElementData.tag.value !== tag.value) return false
 	return true
 }
 
@@ -277,6 +298,7 @@ const filterIfcElementsDataByPropertiesAndType = (
 	allIfcElementsData: IfcElementData[],
 	propertiesToFind: Property[],
 	type?: string,
+	tag?: Tag,
 ): IfcElementData[] => {
 	const foundElements: IfcElementData[] = []
 
@@ -287,7 +309,7 @@ const filterIfcElementsDataByPropertiesAndType = (
 
 		if (!current) continue
 
-		if (matchPropertiesAndType(current, propertiesToFind, type)) {
+		if (matchPropertiesAndType(current, propertiesToFind, type) && matchTag(current, tag)) {
 			foundElements.push(current)
 		}
 	}
@@ -307,6 +329,7 @@ const filterIfcElementsByPropertiesAndType = (
 	ifcModel: IfcModel,
 	propertiesToFind: Property[] = [],
 	type?: string,
+	tag?: Tag,
 ): IfcElement[] => {
 	const foundElements: IfcElement[] = []
 
@@ -317,7 +340,7 @@ const filterIfcElementsByPropertiesAndType = (
 
 		if (!current) continue
 
-		if (matchPropertiesAndType(current.userData, propertiesToFind, type)) {
+		if (matchPropertiesAndType(current.userData, propertiesToFind, type) && matchTag(current.userData, tag)) {
 			foundElements.push(current)
 		}
 	}
@@ -333,6 +356,8 @@ const filterIfcElementsByPropertiesAndType = (
  * @returns `true` if the IFC element satisfies the requirements, otherwise `false`.
  */
 const satisfiesRequirements = (ifcElementData: IfcElementData, requirements: Requirements | undefined): boolean => {
+	console.log(ifcElementData)
+
 	// Check if there are any selection requirements
 	if (!requirements) {
 		return true
@@ -343,9 +368,14 @@ const satisfiesRequirements = (ifcElementData: IfcElementData, requirements: Req
 		return false
 	}
 
-	// Check if the object has no properties
-	if (!requirements.properties || requirements.properties.length === 0) {
+	// Check if the object has no properties and no tag
+	if ((!requirements.properties || requirements.properties.length === 0) && !requirements.tag) {
 		return true
+	}
+
+	// Check if the object has the required tag
+	if (!matchTag(ifcElementData, requirements.tag)) {
+		return false
 	}
 
 	// Check if the object has the required properties
