@@ -47,17 +47,18 @@ const defaultProps: IfcViewerProps = {
 	enableMeshHover: true,
 	enableMeshSelection: true,
 	style: { minHeight: '480px' },
-	links: [
-		{
-			sharedProperty: 'numero pilastro',
-			source: { properties: [{ name: 'numero pilastro' }], linkName: 'sensori' },
-			target: { properties: [{ name: 'ins_codice' }], linkName: 'pilastro' },
-		},
-	],
-	selectable: [
-		{ properties: [{ name: 'Numero Pilastro' }], links: ['sensori'] },
-		{ properties: [{ name: 'ins_codice' }] },
-	],
+	// links: [
+	// 	{
+	// 		sharedProperty: 'numero pilastro',
+	// 		source: { properties: [{ name: 'numero pilastro' }], linkName: 'sensori' },
+	// 		target: { properties: [{ name: 'ins_codice' }], linkName: 'pilastro' },
+	// 	},
+	// ],
+	// selectable: [
+	// 	{ properties: [{ name: 'Numero Pilastro' }], links: ['sensori'] },
+	// 	{ properties: [{ name: 'ins_codice' }] },
+	// ],
+	selectable: [{ tag: { name: 'IFCIDENTIFIER' } }],
 	onModelLoaded: () => {
 		console.log('Model loaded')
 	},

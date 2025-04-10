@@ -312,13 +312,26 @@ const filterIfcElementsDataByPropertiesAndType = (
 		if (
 			matchPropertiesAndType(current, propertiesToFind, type) &&
 			matchTag(current, tag) &&
-			current.expressId === expressId
+			matchExpressId(current, expressId)
 		) {
 			foundElements.push(current)
 		}
 	}
 
 	return foundElements
+}
+
+/**
+ * Checks if the given IFC element data matches the specified express ID.
+ *
+ * @param ifcElementData - The data of the IFC element to be checked.
+ * @param expressId - The express ID to match against. If not provided, the function will return `true`.
+ * @returns `true` if the express ID matches or if no express ID is provided; otherwise, `false`.
+ */
+const matchExpressId = (ifcElementData: IfcElementData, expressId?: number): boolean => {
+	if (!expressId) return true
+	if (ifcElementData.expressId !== expressId) return false
+	return true
 }
 
 const filterIfcElementsByPropertiesAndType = (
@@ -339,7 +352,7 @@ const filterIfcElementsByPropertiesAndType = (
 
 		const isMatchingPropsAndType = matchPropertiesAndType(current.userData, propertiesToFind, type)
 		const isMatchingTag = matchTag(current.userData, tag)
-		const isMatchingExpressId = current.userData.expressId === expressId
+		const isMatchingExpressId = matchExpressId(current.userData, expressId)
 
 		if (isMatchingPropsAndType && isMatchingTag && isMatchingExpressId) {
 			foundElements.push(current)
@@ -377,7 +390,7 @@ const satisfiesRequirements = (ifcElementData: IfcElementData, requirements: Req
 	}
 
 	// Check if the object has the required expressId
-	if (ifcElementData.expressId !== requirements.expressId) {
+	if (!matchExpressId(ifcElementData, requirements.expressId)) {
 		return false
 	}
 
