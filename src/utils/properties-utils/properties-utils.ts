@@ -209,7 +209,6 @@ const matchPropertiesAndType = (
  * @returns `true` if the IFC element's tag matches the specified criteria or if no criteria are provided; otherwise, `false`.
  */
 const matchTag = (ifcElementData: IfcElementData, tag?: Tag): boolean => {
-	console.log('checking tag', ifcElementData.tag, tag)
 	if (!tag) return true
 	if (!ifcElementData.tag) return false
 	if (tag.name && ifcElementData.tag.name !== tag.name) return false

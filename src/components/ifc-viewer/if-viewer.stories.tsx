@@ -1,13 +1,38 @@
 import { getPath } from '@/utils'
 import type { Meta, StoryObj } from '@storybook/react'
+import type { IfcElement } from 'dist'
+import { useState } from 'react'
 import { IfcControls } from '../ifc-controls/ifc-controls'
 import { IfcGreenMarker, IfcRedMarker } from '../ifc-marker'
 import { IfcOverlay } from '../ifc-overlay'
 import { IfcViewer, type IfcViewerProps } from './ifc-viewer'
 
+const MockComponent = (props: IfcViewerProps) => {
+	const { onMeshSelect, ...rest } = props
+	const [ifcElement, setIfcElement] = useState<IfcElement>()
+
+	const handleMeshSelect = (ifcElement: IfcElement | undefined) => {
+		if (onMeshSelect) {
+			onMeshSelect(ifcElement)
+		}
+		setIfcElement(ifcElement)
+	}
+
+	return (
+		<>
+			<IfcViewer onMeshSelect={handleMeshSelect} {...rest}></IfcViewer>
+			<div>
+				<pre style={{ whiteSpace: 'pre-wrap', wordWrap: 'break-word' }}>
+					{JSON.stringify(ifcElement?.userData, null, 2)}
+				</pre>
+			</div>
+		</>
+	)
+}
+
 const meta: Meta<typeof IfcViewer> = {
 	title: 'Components/IFC Viewer',
-	component: IfcViewer,
+	component: MockComponent,
 	parameters: {},
 	tags: ['autodocs'],
 	argTypes: {},
@@ -48,90 +73,6 @@ const defaultProps: IfcViewerProps = {
 		</>
 	),
 }
-// const defaultProps: IfcViewerProps = {
-// 	url: `${await getPath()}/test/castle.ifc`,
-// 	enableMeshHover: true,
-// 	enableMeshSelection: true,
-// 	style: { minHeight: '480px' },
-// 	links: [],
-// 	selectable: [{ type: 'IfcDistributionControlElement' }],
-// 	alwaysVisible: [{ type: 'IfcDistributionControlElement' }],
-// 	children: (
-// 		<>
-// 			<IfcOverlay
-// 				requirements={{
-// 					type: 'IfcDistributionControlElement',
-// 					properties: [{ name: 'Contrassegno' }],
-// 				}}
-// 				onSelect={ifcElement => {
-// 					console.log(ifcElement)
-// 				}}
-// 			>
-// 				<IfcGreenMarker hoverEffect />
-// 			</IfcOverlay>
-// 			<IfcControls />
-// 		</>
-// 	),
-// }
-
-// const data = JSON.parse(`
-// {
-//   "47596": {
-//     "expressId": 47596,
-//     "type": "IfcDistributionControlElement",
-//     "name": "Accelerometro OnBoard - adxl354_adxl355:Tipo 1:293740",
-//     "values": {
-//       "Contrassegno": "1"
-//     },
-//     "selectable": true
-//   },
-//   "47639": {
-//     "expressId": 47639,
-//     "type": "IfcDistributionControlElement",
-//     "name": "Accelerometro OnBoard - adxl354_adxl355:Tipo 1:293743",
-//     "values": {
-//       "Contrassegno": "2"
-//     },
-//     "selectable": true
-//   },
-//   "47665": {
-//     "expressId": 47665,
-//     "type": "IfcDistributionControlElement",
-//     "name": "Accelerometro OnBoard - adxl354_adxl355:Tipo 1:296289",
-//     "values": {
-//       "Contrassegno": "3"
-//     },
-//     "selectable": true
-//   },
-//   "47691": {
-//     "expressId": 47691,
-//     "type": "IfcDistributionControlElement",
-//     "name": "Accelerometro OnBoard - adxl354_adxl355:Tipo 1:296291",
-//     "values": {
-//       "Contrassegno": "4"
-//     },
-//     "selectable": true
-//   },
-//   "47731": {
-//     "expressId": 47731,
-//     "type": "IfcDistributionControlElement",
-//     "name": "Accelerometro esterno:Tipo 1:297914",
-//     "values": {
-//       "Contrassegno": "5"
-//     },
-//     "selectable": true
-//   },
-//   "47791": {
-//     "expressId": 47791,
-//     "type": "IfcDistributionControlElement",
-//     "name": "Clinometro di superficie:Tipo 1:298739",
-//     "values": {
-//       "Contrassegno": "6"
-//     },
-//     "selectable": true
-//   }
-// }
-// `) as IfcElementData[]
 
 export const DefaultViewer: Story = {
 	args: {
