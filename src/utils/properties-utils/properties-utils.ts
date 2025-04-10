@@ -355,8 +355,6 @@ const filterIfcElementsByPropertiesAndType = (
  * @returns `true` if the IFC element satisfies the requirements, otherwise `false`.
  */
 const satisfiesRequirements = (ifcElementData: IfcElementData, requirements: Requirements | undefined): boolean => {
-	console.log(ifcElementData)
-
 	// Check if there are any selection requirements
 	if (!requirements) {
 		return true

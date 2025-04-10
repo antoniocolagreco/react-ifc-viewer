@@ -123,7 +123,7 @@ const useIfcViewer = () => {
 			setPropertiesReaderProgress({ status: 'DONE', loaded: total, total, percentage: '100%' })
 			return dataToSave
 		},
-		[],
+		[setPropertiesReaderProgress],
 	)
 
 	return { ...globalState, utilities: { propertiesReader: { read, ...propertiesReaderProgress } } }

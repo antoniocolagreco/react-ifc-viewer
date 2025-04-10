@@ -10,8 +10,9 @@ const useGlobalState: UseGlobalStateHook = () => {
 	const [state, setState] = useState<GlobalState>(globalState.getState())
 
 	const sync = useCallback(() => {
+		if (globalState.getState() === state) return
 		setState(globalState.getState())
-	}, [])
+	}, [state])
 
 	useEffect(() => {
 		const unsubscribe = globalState.subscribe(sync)
