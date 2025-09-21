@@ -30,11 +30,13 @@ jobs:
                   node-version: 20
                   cache: 'pnpm'
 
-            - name: Install pnpm
-              uses: pnpm/action-setup@v2
-              with:
-                  version: 9
-                  run_install: true
+            - name: Enable Corepack (pnpm)
+              run: |
+                  corepack enable
+                  corepack prepare pnpm@9 --activate
+
+            - name: Install dependencies
+              run: pnpm install --frozen-lockfile
 
             - name: Build Storybook
               env:
