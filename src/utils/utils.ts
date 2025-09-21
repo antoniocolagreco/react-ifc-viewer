@@ -8,12 +8,16 @@ const isRunningInBrowser = () => {
 	return true
 }
 
+const ensureTrailingSlash = (value: string) => (value.endsWith('/') ? value : `${value}/`)
+
 const getPath = async () => {
 	if (isRunningInBrowser()) {
-		return `${location.origin}${import.meta.env.BASE_URL}`
+		const base = import.meta.env.BASE_URL
+		return ensureTrailingSlash(`${location.origin}${base}`)
 	}
 	const path = await import('node:path')
-	return path.resolve('public')
+	// Use a trailing slash so string concatenations like `${getPath()}wasm/` are valid
+	return ensureTrailingSlash(path.resolve('public'))
 }
 
 const getPercetage = (value?: number, total?: number) => {
