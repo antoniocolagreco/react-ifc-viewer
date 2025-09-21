@@ -35,6 +35,9 @@ jobs:
               with:
                   version: 9
 
+            - name: Ensure pnpm available in PATH (fallback)
+              run: npm i -g pnpm@9
+
             - name: Install dependencies
               run: pnpm install --frozen-lockfile
 
