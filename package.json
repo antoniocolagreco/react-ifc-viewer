@@ -80,7 +80,11 @@
 		"vite": "^6.2.5",
 		"vite-plugin-css-injected-by-js": "^3.5.2",
 		"vite-plugin-dts": "^4.5.3",
-		"vitest": "^2.1.9"
+		"vitest": "^2.1.9",
+		"react": "^19.0.0",
+		"react-dom": "^19.0.0",
+		"three": "^0.175.0",
+		"web-ifc": "^0.0.66"
 	},
 	"peerDependencies": {
 		"react": "^19.0.0",
@@ -90,7 +94,6 @@
 	},
 	"packageManager": "pnpm@9.14.4+sha512.c8180b3fbe4e4bca02c94234717896b5529740a6cbadf19fa78254270403ea2f27d4e1d46a08a0f56c89b63dc8ebfd3ee53326da720273794e6200fcf0d184ab",
 	"dependencies": {
-		"clsx": "^2.1.1",
-		"react-ifc-viewer": "link:"
+		"clsx": "^2.1.1"
 	}
 }

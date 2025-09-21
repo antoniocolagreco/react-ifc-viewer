@@ -1,9 +1,9 @@
 import { getPath } from '@/utils'
 import type { Meta, StoryObj } from '@storybook/react'
-import { type IfcElement } from 'dist'
+import { type IfcElement } from '@/classes'
 import { useState } from 'react'
 import { IfcControls } from '../ifc-controls/ifc-controls'
-import { IfcGreenMarker, IfcRedMarker } from '../ifc-marker'
+import { IfcGreenMarker } from '../ifc-marker'
 import { IfcOverlay } from '../ifc-overlay'
 import { IfcViewer, type IfcViewerProps } from './ifc-viewer'
 
@@ -58,7 +58,7 @@ const defaultProps: IfcViewerProps = {
 	// 	{ properties: [{ name: 'Numero Pilastro' }], links: ['sensori'] },
 	// 	{ properties: [{ name: 'ins_codice' }] },
 	// ],
-	selectable: [{ tag: { name: 'IFCIDENTIFIER' } }],
+	selectable: [{ expressId: 112886 }],
 	onModelLoaded: () => {
 		console.log('Model loaded')
 	},
@@ -67,12 +67,15 @@ const defaultProps: IfcViewerProps = {
 	},
 	children: (
 		<>
-			<IfcOverlay requirements={{ properties: [{ name: 'ins_codice', value: '1' }] }}>
+			<IfcOverlay requirements={{ expressId: 112886 }}>
+				<IfcGreenMarker hoverEffect />
+			</IfcOverlay>
+			{/* <IfcOverlay requirements={{ properties: [{ name: 'ins_codice', value: '1' }] }}>
 				<IfcGreenMarker hoverEffect />
 			</IfcOverlay>
 			<IfcOverlay requirements={{ properties: [{ name: 'ins_codice', value: '2' }] }}>
 				<IfcRedMarker hoverEffect />
-			</IfcOverlay>
+			</IfcOverlay> */}
 			<IfcControls />
 		</>
 	),

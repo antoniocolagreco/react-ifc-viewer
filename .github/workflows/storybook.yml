@@ -24,6 +24,12 @@ jobs:
             - name: Checkout repository
               uses: actions/checkout@v4
 
+            - name: Setup Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 20
+                  cache: 'pnpm'
+
             - name: Install pnpm
               uses: pnpm/action-setup@v2
               with:
@@ -32,7 +38,9 @@ jobs:
 
             - name: Build Storybook
               env:
+                  # Set both for compatibility with Vite config and Storybook's viteFinal
                   BASE_URL: '/react-ifc-viewer'
+                  VITE_BASE_URL: '/react-ifc-viewer'
               run: pnpm run build:storybook
 
             - name: Setup GitHub Pages
