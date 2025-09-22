@@ -1,6 +1,6 @@
+import { type IfcElement } from '@/classes'
 import { getPath } from '@/utils'
 import type { Meta, StoryObj } from '@storybook/react'
-import { type IfcElement } from '@/classes'
 import { useState } from 'react'
 import { IfcControls } from '../ifc-controls/ifc-controls'
 import { IfcGreenMarker } from '../ifc-marker'
@@ -9,7 +9,7 @@ import { IfcViewer, type IfcViewerProps } from './ifc-viewer'
 
 const MockComponent = (props: IfcViewerProps) => {
 	const { onMeshSelect, ...rest } = props
-	const [ifcElement, setIfcElement] = useState<IfcElement>()
+	const [, setIfcElement] = useState<IfcElement>()
 
 	const handleMeshSelect = (ifcElement: IfcElement | undefined) => {
 		if (onMeshSelect) {
@@ -21,11 +21,6 @@ const MockComponent = (props: IfcViewerProps) => {
 	return (
 		<>
 			<IfcViewer onMeshSelect={handleMeshSelect} {...rest}></IfcViewer>
-			<div>
-				<pre style={{ whiteSpace: 'pre-wrap', wordWrap: 'break-word' }}>
-					{JSON.stringify(ifcElement?.userData, null, 2)}
-				</pre>
-			</div>
 		</>
 	)
 }
