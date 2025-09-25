@@ -44,6 +44,7 @@ const basicConfig = defineConfig({
 			output: {
 				format: 'es',
 				preserveModules: true,
+				exports: 'named',
 			},
 			plugins: [preserveDirective()],
 		},
