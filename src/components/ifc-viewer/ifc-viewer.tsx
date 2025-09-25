@@ -1,6 +1,5 @@
 'use client'
 
-import { Grid } from '@/3d-components/grid'
 import type { IfcElement } from '@/classes'
 import { IfcMesh, IfcModel } from '@/classes'
 import { type IfcOverlayProps } from '@/components'
@@ -58,20 +57,19 @@ import {
 	type ReactElement,
 	type ReactNode,
 } from 'react'
-import {
-	AmbientLight,
-	DirectionalLight,
-	PerspectiveCamera,
-	Raycaster,
-	Scene,
-	Sphere,
-	Vector2,
-	WebGLRenderer,
-	type Intersection,
-} from 'three'
-import { OrbitControls } from 'three/examples/jsm/Addons.js'
+import { Raycaster, Scene, Sphere, Vector2, type Intersection, type PerspectiveCamera, type WebGLRenderer } from 'three'
+import type { OrbitControls } from 'three/examples/jsm/Addons.js'
 import './ifc-viewer.css'
 import type { IfcLoadingStatus, IfcMouseState, IfcViewMode } from './types'
+import {
+	createRenderLoop,
+	createResizeObserver,
+	createViewerCamera,
+	createViewerControls,
+	createViewerRenderer,
+	populateSceneWithDefaults,
+	type RenderLoop,
+} from './scene-setup'
 
 const LAYER_MESHES = 0
 const LAYER_HELPERS = 29
@@ -140,8 +138,7 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 	const rendererRef = useRef<WebGLRenderer>(undefined)
 	const cameraRef = useRef<PerspectiveCamera>(undefined)
 	const controlsRef = useRef<OrbitControls>(undefined)
-
-	const animationFrameIdRef = useRef<number>(undefined)
+	const renderLoopRef = useRef<RenderLoop | undefined>(undefined)
 
 	const sceneRef = useRef<Scene>(new Scene())
 	const modelRef = useRef<IfcModel>(undefined)
@@ -238,22 +235,11 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 		setIfcViewerChildren(newChildren)
 	}, [children, processIfcMarker])
 
-	const resetScene = (): void => {
+	const resetScene = useCallback((): void => {
 		disposeObjects(sceneRef.current)
 		sceneRef.current.children.length = 0
-
-		const ambientLight = new AmbientLight(0xffffff, 0.5)
-		sceneRef.current.add(ambientLight)
-
-		const directionalLight = new DirectionalLight(0xffffff, 1.5)
-		directionalLight.position.set(5, 10, 3)
-		sceneRef.current.add(directionalLight)
-
-		const grid = new Grid()
-		grid.position.y = -0.3
-		grid.layers.set(LAYER_HELPERS)
-		sceneRef.current.add(grid)
-	}
+		populateSceneWithDefaults(sceneRef.current, LAYER_HELPERS)
+	}, [])
 
 	const updateBoundingSphere = useCallback((): void => {
 		const model = modelRef.current
@@ -671,69 +657,53 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 		if (loadingProgress.status !== 'NOT_INITIALIZED') {
 			return
 		}
-		if (!canvasRef.current) {
+		const canvas = canvasRef.current
+		if (!canvas) {
 			throw new Error('Canvas not found')
 		}
-		const canvas = canvasRef.current
-		// Renderer
-		rendererRef.current = new WebGLRenderer({
-			canvas: canvasRef.current,
-			antialias: true,
-			alpha: true,
-		})
-		const renderer = rendererRef.current
-		renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
-		renderer.setSize(canvas.clientWidth, canvas.clientHeight)
-		renderer.setClearColor(0x000000, 0)
-		// Camera
-		cameraRef.current = new PerspectiveCamera()
-		const camera = cameraRef.current
-		camera.fov = 45
-		camera.aspect = canvasRef.current.clientWidth / canvas.clientHeight
-		camera.near = 0.1
-		camera.far = 5000
-		camera.position.set(10, 20, 20)
-		camera.updateProjectionMatrix()
-		camera.layers.set(LAYER_MESHES)
-		camera.layers.enable(LAYER_HELPERS)
+
+		const renderer = createViewerRenderer(canvas)
+		rendererRef.current = renderer
+
+		const camera = createViewerCamera(canvas, { meshes: LAYER_MESHES, helpers: LAYER_HELPERS })
 		cameraRef.current = camera
 		sceneRef.current.add(camera)
-		// Controls
-		controlsRef.current = new OrbitControls(cameraRef.current, rendererRef.current.domElement)
-		const controls = controlsRef.current
-		controls.enableDamping = true
-		controls.maxPolarAngle = Math.PI / 2
-		// Raycaster
+
+		const controls = createViewerControls(camera, renderer)
+		controlsRef.current = controls
+
 		rayCasterRef.current.layers.set(LAYER_MESHES)
 
-		if (!containerRef.current) {
+		const container = containerRef.current
+		if (!container) {
 			throw new Error('Container not found')
 		}
 
-		resizeObserverRef.current = new ResizeObserver(() => {
+		const handleResize = (): void => {
 			renderScene()
 			updateAnchors()
-		})
-		resizeObserverRef.current.observe(containerRef.current)
+		}
+		resizeObserverRef.current = createResizeObserver(container, handleResize)
 
 		resetScene()
 
-		const animate = (): void => {
-			if (renderingEnabledRef.current) {
-				renderScene()
-				updateAnchors()
+		const renderLoop = createRenderLoop(() => {
+			if (!renderingEnabledRef.current) {
+				return
 			}
-			animationFrameIdRef.current = requestAnimationFrame(animate)
-		}
-		animate()
-	}, [loadingProgress.status, renderScene, updateAnchors])
+			renderScene()
+			updateAnchors()
+		})
+		renderLoop.start()
+		renderLoopRef.current = renderLoop
+	}, [loadingProgress.status, renderScene, resetScene, updateAnchors])
 
 	const unloadEverything = useCallback((): void => {
 		boundingSphereMeshRef.current = undefined
 		disposeObjects(sceneRef.current)
-		if (animationFrameIdRef.current) {
-			cancelAnimationFrame(animationFrameIdRef.current)
-		}
+		renderLoopRef.current?.stop()
+		renderLoopRef.current = undefined
+		resizeObserverRef.current?.disconnect()
 		rendererRef.current?.dispose()
 	}, [])
 
@@ -877,6 +847,7 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 		linksRequirements,
 		onModelLoaded,
 		renderScene,
+		resetScene,
 		resetView,
 		selectableRequirements,
 		url,
