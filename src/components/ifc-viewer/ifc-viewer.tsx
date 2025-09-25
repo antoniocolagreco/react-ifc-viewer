@@ -12,6 +12,7 @@ import { useThrottle } from '@/hooks/use-throttle'
 import type {
 	IfcElementData,
 	IfcElementLink,
+	IfcInstanceRecord,
 	IfcMarkerLink,
 	LambertMesh,
 	Property,
@@ -21,6 +22,7 @@ import type {
 import {
 	alignObject,
 	createBoundingSphere,
+	createBoundingSphereFromElement,
 	createSphereMesh,
 	disposeObjects,
 	fetchFile,
@@ -62,10 +64,10 @@ import {
 	PerspectiveCamera,
 	Raycaster,
 	Scene,
+	Sphere,
 	Vector2,
 	WebGLRenderer,
 	type Intersection,
-	type Sphere,
 } from 'three'
 import { OrbitControls } from 'three/examples/jsm/Addons.js'
 import './ifc-viewer.css'
@@ -95,6 +97,12 @@ type IfcViewerProps = ComponentPropsWithRef<'div'> & {
 	enableMeshSelection?: boolean
 	enableMeshHover?: boolean
 	showBoundingSphere?: boolean
+}
+
+type SelectableIntersection = {
+	element: IfcElement
+	instance: IfcInstanceRecord
+	intersection: Intersection<IfcMesh>
 }
 
 const IfcViewer: FC<IfcViewerProps> = props => {
@@ -149,7 +157,7 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 	const hoveredIfcElementRef = useRef<IfcElement>(undefined)
 	const previousHoveredIfcElementRef = useRef<IfcElement>(undefined)
 
-	const selectableIntersectionsRef = useRef<Intersection<IfcMesh>[]>([])
+	const selectableIntersectionsRef = useRef<SelectableIntersection[]>([])
 	const mouseStatusRef = useRef<IfcMouseState>({ clicked: false, x: 0, y: 0 })
 
 	const resizeObserverRef = useRef<ResizeObserver>(undefined)
@@ -248,15 +256,21 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 	}
 
 	const updateBoundingSphere = useCallback((): void => {
-		if (!modelRef.current) {
+		const model = modelRef.current
+		if (!model) {
 			return
 		}
 
-		const meshes: IfcMesh[] = selectedIfcElementRef.current?.children ?? modelRef.current.getAllMeshes()
+		if (selectedIfcElementRef.current) {
+			boundingSphereRef.current = createBoundingSphereFromElement(selectedIfcElementRef.current, model)
+		} else {
+			const meshes = model.getAllMeshes()
+			boundingSphereRef.current = meshes.length === 0 ? new Sphere() : createBoundingSphere(meshes)
+		}
 
-		boundingSphereRef.current = createBoundingSphere(meshes)
-
-		if (!showBoundingSphere) return
+		if (!showBoundingSphere) {
+			return
+		}
 
 		if (boundingSphereMeshRef.current) {
 			sceneRef.current.remove(boundingSphereMeshRef.current)
@@ -295,7 +309,7 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 						if (ifcElement.userData.alwaysVisible || ifcElement.userData.selectable) {
 							setMaterialToDefault(ifcElement, modelRef.current)
 						} else {
-							setMaterialToHidden(ifcElement)
+							setMaterialToHidden(ifcElement, modelRef.current)
 						}
 						break
 					}
@@ -309,7 +323,7 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 		if (!modelRef.current) {
 			return
 		}
-		for (const ifcElement of modelRef.current.children) {
+		for (const ifcElement of modelRef.current.getElements()) {
 			updateMeshDisplay(ifcElement)
 		}
 	}, [updateMeshDisplay])
@@ -386,13 +400,17 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 		if (!cameraRef.current || !rendererRef.current) {
 			return
 		}
+		const model = modelRef.current
+		if (!model) {
+			return
+		}
 		const newAnchors: ReactElement<IfcAnchorProps>[] = []
 		const ifcMarkerLinks = ifcMarkerLinksRef.current
 
 		for (const ifcMarkerLink of ifcMarkerLinks) {
 			const { element, props } = ifcMarkerLink
 
-			const ifcElement3dPosition = getGroupPosition(element)
+			const ifcElement3dPosition = getGroupPosition(element, model)
 			const position = transformViewportPositionToScreenPosition(
 				cameraRef.current,
 				rendererRef.current,
@@ -436,17 +454,33 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 		if (!cameraRef.current) {
 			throw new Error('Camera not found')
 		}
+		const model = modelRef.current
+		if (!model) {
+			selectableIntersectionsRef.current = []
+			return
+		}
 		rayCasterRef.current.setFromCamera(pointerRef.current, cameraRef.current)
-		const allIntersections = rayCasterRef.current.intersectObjects(sceneRef.current.children)
-
-		const selectableIfcMeshes = allIntersections.filter(intersection => {
-			if (intersection.object instanceof IfcMesh) {
-				return intersection.object.parent.userData.selectable
+		const allIntersections = rayCasterRef.current.intersectObjects(sceneRef.current.children, true)
+		const selectable: SelectableIntersection[] = []
+		for (const intersection of allIntersections) {
+			if (!(intersection.object instanceof IfcMesh)) {
+				continue
 			}
-			return false
-		}) as Intersection<IfcMesh>[]
-
-		selectableIntersectionsRef.current = selectableIfcMeshes
+			const instanceId = intersection.instanceId
+			if (typeof instanceId !== 'number') {
+				continue
+			}
+			const instanceRecord = model.getInstanceRecord(intersection.object, instanceId)
+			if (!instanceRecord) {
+				continue
+			}
+			const element = instanceRecord.element
+			if (!element.isSelectable()) {
+				continue
+			}
+			selectable.push({ element, instance: instanceRecord, intersection: intersection as Intersection<IfcMesh> })
+		}
+		selectableIntersectionsRef.current = selectable
 	}, [])
 
 	const handleMouseLeave = useCallback((): void => {
@@ -484,10 +518,15 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 				return
 			}
 
-			const firstIntersectedMesh = selectableIntersectionsRef.current.at(0)?.object
-			const ifcElement = firstIntersectedMesh?.getifcElement()
+			const firstSelectable = selectableIntersectionsRef.current.at(0)
+			const ifcElement = firstSelectable?.element
 
-			if (selectableRequirements && selectableRequirements.length > 0 && !ifcElement?.isSelectable()) {
+			if (
+				selectableRequirements &&
+				selectableRequirements.length > 0 &&
+				ifcElement &&
+				!ifcElement.isSelectable()
+			) {
 				select()
 				return
 			}
@@ -512,10 +551,15 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 			if (!enableMeshHover) return
 			updateMousePointer(event)
 			updateIntersections()
-			const firstIntersectedMesh = selectableIntersectionsRef.current.at(0)?.object
-			const ifcElement = firstIntersectedMesh?.getifcElement()
+			const firstSelectable = selectableIntersectionsRef.current.at(0)
+			const ifcElement = firstSelectable?.element
 
-			if (selectableRequirements && selectableRequirements.length > 0 && !ifcElement?.isSelectable()) {
+			if (
+				selectableRequirements &&
+				selectableRequirements.length > 0 &&
+				ifcElement &&
+				!ifcElement.isSelectable()
+			) {
 				hover()
 				return
 			}

@@ -52,7 +52,7 @@ Object.defineProperty(HTMLCanvasElement.prototype, 'getContext', {
 				scissor: vi.fn(),
 			}
 		}
-		
+
 		// Default 2D context mock
 		return {
 			fillStyle: '',

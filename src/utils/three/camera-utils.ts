@@ -1,3 +1,4 @@
+import type { IfcElement, IfcModel } from '@/classes'
 import type { LambertMesh } from '@/types'
 import {
 	Box3,
@@ -45,6 +46,34 @@ const createBoundingSphere = (object: Object3D | Object3D[]): Sphere => {
 	}
 	const sphere = new Sphere()
 	bb.getBoundingSphere(sphere)
+	return sphere
+}
+
+const createBoundingSphereFromElement = (ifcElement: IfcElement, ifcModel: IfcModel): Sphere => {
+	const aggregateBox = new Box3()
+	const instanceBox = new Box3()
+	for (const record of ifcElement.getInstanceRecords()) {
+		const geometry = ifcModel.getElementGeometry(record.geometryId) ?? record.handle?.mesh.geometry
+		if (!geometry) {
+			continue
+		}
+		if (!geometry.boundingBox) {
+			geometry.computeBoundingBox()
+		}
+		if (!geometry.boundingBox) {
+			continue
+		}
+		instanceBox.copy(geometry.boundingBox)
+		instanceBox.applyMatrix4(record.matrix)
+		aggregateBox.union(instanceBox)
+	}
+	const sphere = new Sphere()
+	if (aggregateBox.isEmpty()) {
+		sphere.center.set(0, 0, 0)
+		sphere.radius = 0
+		return sphere
+	}
+	aggregateBox.getBoundingSphere(sphere)
 	return sphere
 }
 
@@ -108,4 +137,11 @@ const moveTo = (destination: Vector3, camera: Camera, controls: OrbitControls, d
 	controls.update()
 }
 
-export { createBoundingSphere, createSphereMesh, fitBoundingSphere, findMinimumDistanceForBoundingSphere, moveTo }
+export {
+	createBoundingSphere,
+	createBoundingSphereFromElement,
+	createSphereMesh,
+	fitBoundingSphere,
+	findMinimumDistanceForBoundingSphere,
+	moveTo,
+}

@@ -1,7 +1,7 @@
-import type { IfcElement } from '@/classes'
+import type { IfcElement, IfcMesh } from '@/classes'
 import type { IfcOverlayProps } from '@/components'
 import type { ReactNode } from 'react'
-import { type BufferGeometry, type Mesh, type MeshLambertMaterial, type ShaderMaterial } from 'three'
+import { type Matrix4, type BufferGeometry, type Mesh, type MeshLambertMaterial, type ShaderMaterial } from 'three'
 
 type ExpressId = number
 
@@ -22,6 +22,7 @@ type IfcModelData = {
 	materialsMap: Map<MaterialId, MeshLambertMaterial>
 	hoverMaterialsMap: Map<MaterialId, MeshLambertMaterial>
 	selectMaterialsMap: Map<MaterialId, MeshLambertMaterial>
+	transparentMaterialsMap: Map<MaterialId, MeshLambertMaterial>
 }
 
 type IfcMeshData = {
@@ -67,6 +68,22 @@ type IfcMarkerLink = {
 type GeometryId = string
 type MaterialId = string
 
+type InstanceState = 'default' | 'hovered' | 'selected' | 'transparent' | 'hidden'
+
+type IfcInstanceHandle = {
+	instanceId: number
+	mesh: IfcMesh
+}
+
+type IfcInstanceRecord = {
+	element: IfcElement
+	geometryId: GeometryId
+	handle?: IfcInstanceHandle
+	materialId: MaterialId
+	matrix: Matrix4
+	state: InstanceState
+}
+
 type ProgressStatus = {
 	state: 'PROGRESS' | 'DONE' | 'ERROR'
 	loaded?: number
@@ -79,9 +96,12 @@ export type {
 	IfcElementData,
 	IfcElementLink,
 	IfcLink,
+	IfcInstanceHandle,
+	IfcInstanceRecord,
 	IfcMarkerLink,
 	IfcMeshData,
 	IfcModelData,
+	InstanceState,
 	LambertMesh,
 	LinkRequirement,
 	MarkerRequirements,

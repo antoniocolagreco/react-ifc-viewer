@@ -36,7 +36,7 @@ const extractDataToSave = (ifcElementsData: IfcElementData[], keepProperties = f
  *                    keyed by their expressId.
  */
 const restoreDataToIfcModelFromRecord = (ifcModel: IfcModel, savedData: IfcElementDataRecord): void => {
-	for (const ifcElement of ifcModel.children) {
+	for (const ifcElement of ifcModel.getElements()) {
 		const data = savedData[ifcElement.userData.expressId]
 		if (!data) {
 			continue
@@ -56,7 +56,7 @@ const restoreDataToIfcModelFromRecord = (ifcModel: IfcModel, savedData: IfcEleme
  * @param ifcElementsData - An array of IFC element data objects to restore into the model.
  */
 const restoreDataToIfcModelFromProperties = (ifcModel: IfcModel, ifcElementsData: IfcElementData[]): void => {
-	for (const ifcElement of ifcModel.children) {
+	for (const ifcElement of ifcModel.getElements()) {
 		const data = ifcElementsData.find(data => data.expressId === ifcElement.userData.expressId)
 		if (!data) {
 			continue

@@ -1,11 +1,10 @@
-import type { IfcElementData } from '@/types'
+import type { IfcElementData, IfcInstanceRecord } from '@/types'
 import { Group } from 'three'
-import type { IfcMesh } from '@/classes'
 
 class IfcElement extends Group {
 	override name: string = 'ifcElement'
 	override userData: IfcElementData
-	override children: IfcMesh[] = []
+	private instanceRecords: IfcInstanceRecord[] = []
 
 	constructor(expressId: number) {
 		super()
@@ -28,6 +27,14 @@ class IfcElement extends Group {
 
 	setSelectable = (value: boolean): void => {
 		this.userData.selectable = value
+	}
+
+	addInstanceRecord = (record: IfcInstanceRecord): void => {
+		this.instanceRecords.push(record)
+	}
+
+	getInstanceRecords = (): IfcInstanceRecord[] => {
+		return this.instanceRecords
 	}
 }
 

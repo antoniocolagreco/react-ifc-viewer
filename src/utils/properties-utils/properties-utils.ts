@@ -343,7 +343,7 @@ const filterIfcElementsByPropertiesAndType = (
 ): IfcElement[] => {
 	const foundElements: IfcElement[] = []
 
-	const stack: IfcElement[] = [...ifcModel.children]
+	const stack: IfcElement[] = [...ifcModel.getElements()]
 
 	while (stack.length > 0) {
 		const current = stack.pop()

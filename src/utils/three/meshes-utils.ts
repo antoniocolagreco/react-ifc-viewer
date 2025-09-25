@@ -1,7 +1,8 @@
 import type { IfcModel } from '@/classes'
-import { IfcElement, IfcMesh } from '@/classes'
+import { IfcElement } from '@/classes'
+import type { IfcMesh } from '@/classes/ifc-mesh'
 import type { GeometryId, MaterialId } from '@/types'
-import { Box3, BufferAttribute, BufferGeometry, Color, Group, Matrix4, MeshLambertMaterial, Vector3 } from 'three'
+import { Box3, BufferAttribute, BufferGeometry, Color, Matrix4, MeshLambertMaterial, Vector3 } from 'three'
 import type { FlatMesh, IfcAPI } from 'web-ifc'
 
 /**
@@ -57,11 +58,14 @@ const buildifcElement = (ifcAPI: IfcAPI, modelID: number, flatMesh: FlatMesh, mo
 			model.setElementMaterial(materialId, material)
 		}
 
-		const ifcMesh = new IfcMesh(geometry, material, ifcElement, geometryId, materialId)
-
-		ifcMesh.applyMatrix4(matrix)
-
-		ifcElement.add(ifcMesh)
+		model.addInstanceRecord({
+			element: ifcElement,
+			geometry,
+			geometryId,
+			material,
+			materialId,
+			matrix,
+		})
 	}
 
 	return ifcElement
@@ -140,25 +144,39 @@ const convertGeometryToBuffer = (vertexData: Float32Array, indexData: Uint32Arra
 }
 
 const cloneMesh = (mesh: IfcMesh): IfcMesh => {
-	const clone = new IfcMesh(
-		mesh.geometry,
-		mesh.material,
-		mesh.parent,
-		mesh.userData.geometryId,
-		mesh.userData.materialId,
-	)
-	clone.applyMatrix4(mesh.matrix)
-	return clone
+	return mesh.clone()
 }
 
-const getGroupPosition = (group: Group): Vector3 => {
-	const boundingBox = new Box3()
-	for (const child of group.children) {
-		boundingBox.expandByObject(child)
+const computeIfcElementBoundingBox = (ifcElement: IfcElement, ifcModel: IfcModel): Box3 => {
+	const aggregateBox = new Box3()
+	const instanceBox = new Box3()
+	for (const record of ifcElement.getInstanceRecords()) {
+		const geometry = ifcModel.getElementGeometry(record.geometryId) ?? record.handle?.mesh.geometry
+		if (!geometry) {
+			continue
+		}
+		if (!geometry.boundingBox) {
+			geometry.computeBoundingBox()
+		}
+		if (!geometry.boundingBox) {
+			continue
+		}
+		instanceBox.copy(geometry.boundingBox)
+		instanceBox.applyMatrix4(record.matrix)
+		aggregateBox.union(instanceBox)
 	}
-	const center = new Vector3()
-	boundingBox.getCenter(center)
-	return center
+	return aggregateBox
 }
 
-export { buildifcElement, cloneMesh, getGroupPosition }
+const getGroupPosition = (ifcElement: IfcElement, ifcModel: IfcModel): Vector3 => {
+	const boundingBox = computeIfcElementBoundingBox(ifcElement, ifcModel)
+	const center = new Vector3()
+	if (boundingBox.isEmpty()) {
+		return center
+	}
+	boundingBox.getCenter(center)
+	// Convert to world space so overlay helpers respect model transforms (for example alignObject offsets)
+	return ifcModel.localToWorld(center)
+}
+
+export { buildifcElement, cloneMesh, computeIfcElementBoundingBox, getGroupPosition }

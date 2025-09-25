@@ -16,7 +16,7 @@ const basicConfig = defineConfig({
 		dts({
 			rollupTypes: false,
 			strictOutput: true,
-			exclude: ['src/test', '**/*.stories.tsx', '**/*.test.tsx'],
+			exclude: ['src/test', '**/*.stories.tsx', '**/*.test.tsx', '**/*.test.ts'],
 		}),
 		cssInjectedByJs({
 			relativeCSSInjection: true,

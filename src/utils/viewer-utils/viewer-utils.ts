@@ -38,25 +38,30 @@ const setMaterialToSelected = (
 	depthTest = true,
 ): void => {
 	ifcElement.visible = true
-	for (const ifcMesh of ifcElement.children) {
-		let selectedMaterial = ifcModel.getElementSelectMaterial(ifcMesh.userData.materialId)
+	const mixingColor = new Color()
+	for (const record of ifcElement.getInstanceRecords()) {
+		const baseMaterial = ifcModel.getElementMaterial(record.materialId)
+		if (!baseMaterial) {
+			continue
+		}
+		let selectedMaterial = ifcModel.getElementSelectMaterial(record.materialId)
 		if (!selectedMaterial) {
 			selectedMaterial = new MeshLambertMaterial()
-			ifcModel.setElementSelectMaterial(ifcMesh.userData.materialId, selectedMaterial)
+			ifcModel.setElementSelectMaterial(record.materialId, selectedMaterial)
 		}
-		let originalMaterial = ifcModel.getElementMaterial(ifcMesh.userData.materialId)
-		if (!originalMaterial) {
-			originalMaterial = ifcMesh.material
-		}
-		const mixedColor = new Color()
-		mixedColor.lerpColors(originalMaterial.color, selectedMaterial.color, 0.5)
-		selectedMaterial.color = mixedColor
+		mixingColor.lerpColors(baseMaterial.color, selectedMaterial.color, 0.5)
+		selectedMaterial.color.copy(mixingColor)
 		selectedMaterial.emissive.setHex(color)
 		selectedMaterial.emissiveIntensity = 1
 		selectedMaterial.depthTest = depthTest
+		selectedMaterial.transparent = baseMaterial.transparent
+		selectedMaterial.opacity = baseMaterial.opacity
+		selectedMaterial.needsUpdate = true
 
-		ifcMesh.material = selectedMaterial
-		ifcMesh.renderOrder = 1
+		ifcModel.moveRecordToState(record, 'selected', () => selectedMaterial)
+		if (record.handle) {
+			record.handle.mesh.renderOrder = 1
+		}
 	}
 }
 
@@ -67,63 +72,72 @@ const setMaterialToHovered = (
 	depthTest = true,
 ): void => {
 	ifcElement.visible = true
-
-	for (const ifcMesh of ifcElement.children) {
-		let hoveredMaterial = ifcModel.getElementHoverMaterial(ifcMesh.userData.materialId)
+	const mixingColor = new Color()
+	for (const record of ifcElement.getInstanceRecords()) {
+		const baseMaterial = ifcModel.getElementMaterial(record.materialId)
+		if (!baseMaterial) {
+			continue
+		}
+		let hoveredMaterial = ifcModel.getElementHoverMaterial(record.materialId)
 		if (!hoveredMaterial) {
 			hoveredMaterial = new MeshLambertMaterial()
-			ifcModel.setElementHoverMaterial(ifcMesh.userData.materialId, hoveredMaterial)
+			ifcModel.setElementHoverMaterial(record.materialId, hoveredMaterial)
 		}
-		let originalMaterial = ifcModel.getElementMaterial(ifcMesh.userData.materialId)
-		if (!originalMaterial) {
-			originalMaterial = ifcMesh.material
-		}
-		const mixedColor = new Color()
-		mixedColor.lerpColors(originalMaterial.color, hoveredMaterial.color, 0.1)
-
-		hoveredMaterial.color = mixedColor
+		mixingColor.lerpColors(baseMaterial.color, hoveredMaterial.color, 0.1)
+		hoveredMaterial.color.copy(mixingColor)
 		hoveredMaterial.emissive.setHex(color)
 		hoveredMaterial.emissiveIntensity = 0.1
 		hoveredMaterial.depthTest = depthTest
+		hoveredMaterial.transparent = baseMaterial.transparent
+		hoveredMaterial.opacity = baseMaterial.opacity
+		hoveredMaterial.needsUpdate = true
 
-		ifcMesh.material = hoveredMaterial
-		ifcMesh.renderOrder = 1
+		ifcModel.moveRecordToState(record, 'hovered', () => hoveredMaterial)
+		if (record.handle) {
+			record.handle.mesh.renderOrder = 1
+		}
 	}
 }
 
 const setMaterialToTransparent = (ifcElement: IfcElement, ifcModel: IfcModel): void => {
 	ifcElement.visible = true
-
-	for (const ifcMesh of ifcElement.children) {
-		const originalMaterial = ifcModel.getElementMaterial(ifcMesh.userData.materialId)
-		const transparentMaterial = new MeshLambertMaterial()
-		if (originalMaterial) {
-			transparentMaterial.copy(originalMaterial)
-		} else {
-			transparentMaterial.copy(ifcMesh.material)
+	for (const record of ifcElement.getInstanceRecords()) {
+		const baseMaterial = ifcModel.getElementMaterial(record.materialId)
+		if (!baseMaterial) {
+			continue
+		}
+		let transparentMaterial = ifcModel.getElementTransparentMaterial(record.materialId)
+		if (!transparentMaterial) {
+			transparentMaterial = baseMaterial.clone()
+			ifcModel.setElementTransparentMaterial(record.materialId, transparentMaterial)
 		}
 		transparentMaterial.transparent = true
 		transparentMaterial.opacity = 0.3
-		// transparentMaterial.depthTest = false
-		// transparentMaterial.depthWrite = false
-		ifcMesh.material = transparentMaterial
-		ifcMesh.renderOrder = 0
+		transparentMaterial.depthWrite = false
+		transparentMaterial.needsUpdate = true
+
+		ifcModel.moveRecordToState(record, 'transparent', () => transparentMaterial)
+		if (record.handle) {
+			record.handle.mesh.renderOrder = 0
+		}
 	}
 }
 
 const setMaterialToDefault = (ifcElement: IfcElement, ifcModel: IfcModel): void => {
 	ifcElement.visible = true
-	for (const ifcMesh of ifcElement.children) {
-		const originalMaterial = ifcModel.getElementMaterial(ifcMesh.userData.materialId)
-		if (originalMaterial) {
-			ifcMesh.material = originalMaterial
+	for (const record of ifcElement.getInstanceRecords()) {
+		ifcModel.setRecordToDefault(record)
+		if (record.handle) {
+			record.handle.mesh.renderOrder = 0
 		}
-		ifcMesh.renderOrder = 0
 	}
 }
 
-const setMaterialToHidden = (ifcElement: IfcElement): void => {
+const setMaterialToHidden = (ifcElement: IfcElement, ifcModel: IfcModel): void => {
 	ifcElement.visible = false
+	for (const record of ifcElement.getInstanceRecords()) {
+		ifcModel.hideRecord(record)
+	}
 }
 
 export {

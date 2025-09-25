@@ -37,7 +37,7 @@ describe('load-ifc', () => {
 		)
 
 		expect(loadedModel).toBeInstanceOf(Group)
-		expect(loadedModel?.children.length).toEqual(152)
+		expect(loadedModel?.getElements().length).toEqual(152)
 	})
 
 	it('should read the properties', async () => {
