@@ -104,7 +104,7 @@ const loadIfcProperties: LoadIfcDataType = async (ifcBuffer, onLoad, onProgress,
 
 		onProgress({ state: 'DONE', loaded, total })
 		onLoad(data)
-	} catch (error) {
+	} catch (error: unknown) {
 		onProgress({ state: 'ERROR' })
 		onError(error as Error)
 	} finally {

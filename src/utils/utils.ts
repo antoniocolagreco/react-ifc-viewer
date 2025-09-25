@@ -1,5 +1,5 @@
-/* eslint-disable unicorn/import-style */
-/* eslint-disable unicorn/prefer-global-this */
+ 
+ 
 
 const isRunningInBrowser = () => {
 	if (typeof window === 'undefined') {

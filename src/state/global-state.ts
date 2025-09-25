@@ -52,7 +52,7 @@ const globalState: GlobalState = {
 		selectableElements: [],
 		selectByProperty: () => {},
 		selectByExpressId: () => {},
-		// eslint-disable-next-line unicorn/no-useless-undefined
+		 
 		getElementByExpressId: () => undefined,
 		getElementsWithData: () => [],
 		updateAnchors: () => {},

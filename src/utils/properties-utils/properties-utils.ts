@@ -75,7 +75,7 @@ const getIfcElementTypeAndProperties = (ifcAPI: IfcAPI, modelID: number, express
 						const propertySingleValue = prop as IFC2X3.IfcPropertySingleValue
 						return {
 							name: propertySingleValue.Name.value,
-							value: propertySingleValue.NominalValue?.value,
+							value: propertySingleValue.NominalValue?.value as PropertyValue | undefined,
 						}
 					})
 
@@ -463,7 +463,7 @@ const setIfcDataItemSelectable = (ifcElementData: IfcElementData, requirements: 
 				!(
 					link in ifcElementData.links ||
 					!ifcElementData.links[link] ||
-					ifcElementData.links[link]?.length === 0
+					ifcElementData.links[link].length === 0
 				)
 			) {
 				break
