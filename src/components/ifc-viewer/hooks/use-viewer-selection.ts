@@ -1,10 +1,11 @@
 import { useCallback, useState, type CSSProperties } from 'react'
 import { Sphere } from 'three'
 import type { IfcElement } from '@/classes'
-import type { Property } from '@/types'
+import type { IfcInstanceRecord, Property } from '@/types'
 import {
 	createBoundingSphere,
 	createBoundingSphereFromElement,
+	createBoundingSphereFromInstanceRecord,
 	createSphereMesh,
 	filterIfcElementsByPropertiesAndType,
 	fitBoundingSphere,
@@ -14,12 +15,12 @@ import {
 	setMaterialToSelected,
 	setMaterialToTransparent,
 } from '@/utils'
-import type { IfcViewMode, ViewerRefs } from '../types'
+import type { IfcViewMode, RenderScene, ViewerRefs } from '../types'
 import { VIEWER_LAYER_HELPERS } from '../constants'
 
 type UseViewerSelectionParams = {
 	refs: ViewerRefs
-	renderScene: () => void
+	renderScene: RenderScene
 	showBoundingSphere: boolean
 	hoverColor?: number
 	selectedColor?: number
@@ -32,8 +33,8 @@ type ViewerSelectionApi = {
 	viewMode: IfcViewMode
 	changeViewMode: (mode?: IfcViewMode) => void
 	updateAllMeshesDisplay: () => void
-	select: (ifcElement?: IfcElement) => void
-	hover: (ifcElement?: IfcElement) => void
+	select: (ifcElement?: IfcElement, instanceRecord?: IfcInstanceRecord) => void
+	hover: (ifcElement?: IfcElement, instanceRecord?: IfcInstanceRecord) => void
 	fitView: () => void
 	focusView: () => void
 	resetView: () => void
@@ -59,12 +60,18 @@ const useViewerSelection = ({
 			return
 		}
 
-		const boundingSphere = refs.selectedIfcElementRef.current
-			? createBoundingSphereFromElement(refs.selectedIfcElementRef.current, model)
-			: (() => {
-					const meshes = model.getAllMeshes()
-					return meshes.length === 0 ? new Sphere() : createBoundingSphere(meshes)
-				})()
+		const selectedInstanceRecord = refs.selectedInstanceRecordRef.current
+		const selectedElement = refs.selectedIfcElementRef.current
+
+		let boundingSphere: Sphere
+		if (selectedInstanceRecord) {
+			boundingSphere = createBoundingSphereFromInstanceRecord(selectedInstanceRecord, model)
+		} else if (selectedElement) {
+			boundingSphere = createBoundingSphereFromElement(selectedElement, model)
+		} else {
+			const meshes = model.getAllMeshes()
+			boundingSphere = meshes.length === 0 ? new Sphere() : createBoundingSphere(meshes)
+		}
 
 		refs.boundingSphereRef.current = boundingSphere
 
@@ -153,9 +160,10 @@ const useViewerSelection = ({
 	}, [refs, updateMeshDisplay])
 
 	const select = useCallback(
-		(ifcElement?: IfcElement) => {
+		(ifcElement?: IfcElement, instanceRecord?: IfcInstanceRecord) => {
 			refs.previousSelectedIfcElementRef.current = refs.selectedIfcElementRef.current
 			refs.selectedIfcElementRef.current = ifcElement
+			refs.selectedInstanceRecordRef.current = instanceRecord
 			updateBoundingSphere()
 			switchSelectedMesh()
 			renderScene()
@@ -168,7 +176,8 @@ const useViewerSelection = ({
 	)
 
 	const hover = useCallback(
-		(ifcElement?: IfcElement) => {
+		(ifcElement?: IfcElement, _instanceRecord?: IfcInstanceRecord) => {
+			void _instanceRecord
 			refs.previousHoveredIfcElementRef.current = refs.hoveredIfcElementRef.current
 			refs.hoveredIfcElementRef.current = ifcElement
 
@@ -241,7 +250,8 @@ const useViewerSelection = ({
 			}
 
 			const ifcElement = model.getIfcElement(expressId)
-			select(ifcElement)
+			const instanceRecord = ifcElement?.getInstanceRecords()[0]
+			select(ifcElement, instanceRecord)
 		},
 		[refs, select],
 	)
@@ -258,8 +268,12 @@ const useViewerSelection = ({
 			if (foundElements.length === 0) {
 				return
 			}
-			const foundElement = foundElements[0]
-			select(foundElement)
+			const [foundElement] = foundElements
+			if (!foundElement) {
+				return
+			}
+			const instanceRecord = foundElement.getInstanceRecords()[0]
+			select(foundElement, instanceRecord)
 			fitView()
 			return foundElement
 		},

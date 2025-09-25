@@ -1,5 +1,6 @@
 import type { IfcElement, IfcModel } from '@/classes'
 import type { IfcLoadingStatus, IfcViewMode } from '@/components'
+import type { RenderScene } from '@/components/ifc-viewer/types'
 import type { Property } from '@/types'
 
 type GlobalStateData = {
@@ -18,7 +19,7 @@ type GlobalStateData = {
 	getElementByExpressId: (expressId: number) => IfcElement | undefined
 	getElementsWithData: () => IfcElement[]
 	updateAnchors: () => void
-	renderScene: () => void
+	renderScene: RenderScene
 }
 
 type GlobalState = {

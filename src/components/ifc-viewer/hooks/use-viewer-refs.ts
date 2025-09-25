@@ -2,10 +2,10 @@ import { useMemo, useRef } from 'react'
 import { Raycaster, Scene, Sphere, Vector2, type PerspectiveCamera, type WebGLRenderer } from 'three'
 import type { OrbitControls } from 'three/examples/jsm/Addons.js'
 import type { IfcElement, IfcModel } from '@/classes'
-import type { IfcMarkerLink, LambertMesh } from '@/types'
+import type { IfcInstanceRecord, IfcMarkerLink, LambertMesh } from '@/types'
 import type { IfcMouseState } from '../types'
 import type { RenderLoop } from '../scene'
-import type { MutableRef, SelectableIntersection, ViewerRefs } from '../types'
+import type { ControlsListener, MutableRef, SelectableIntersection, ViewerRefs } from '../types'
 
 type MutableVector2Ref = MutableRef<Vector2>
 
@@ -31,6 +31,7 @@ const useViewerRefs: ViewerRefsFactory = () => {
 
 	const selectedIfcElementRef = useRef<IfcElement | undefined>(undefined)
 	const previousSelectedIfcElementRef = useRef<IfcElement | undefined>(undefined)
+	const selectedInstanceRecordRef = useRef<IfcInstanceRecord | undefined>(undefined)
 	const hoveredIfcElementRef = useRef<IfcElement | undefined>(undefined)
 	const previousHoveredIfcElementRef = useRef<IfcElement | undefined>(undefined)
 
@@ -44,6 +45,7 @@ const useViewerRefs: ViewerRefsFactory = () => {
 
 	const ifcMarkerLinksRef = useRef<IfcMarkerLink[]>([])
 	const currentLoadedUrlRef = useRef<string>('')
+	const controlsListenersRef = useRef<ControlsListener[]>([])
 
 	const viewerRefs = useMemo<ViewerRefs>(
 		() => ({
@@ -61,6 +63,7 @@ const useViewerRefs: ViewerRefsFactory = () => {
 			boundingSphereMeshRef,
 			selectedIfcElementRef,
 			previousSelectedIfcElementRef,
+			selectedInstanceRecordRef,
 			hoveredIfcElementRef,
 			previousHoveredIfcElementRef,
 			selectableIntersectionsRef,
@@ -70,6 +73,7 @@ const useViewerRefs: ViewerRefsFactory = () => {
 			renderingTimeoutRef,
 			ifcMarkerLinksRef,
 			currentLoadedUrlRef,
+			controlsListenersRef,
 		}),
 		[],
 	)

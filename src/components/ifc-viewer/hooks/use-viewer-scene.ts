@@ -1,5 +1,5 @@
 import { useCallback } from 'react'
-import type { ViewerRefs } from '../types'
+import type { ControlsListener, RenderScene, RenderSceneOptions, ViewerRefs } from '../types'
 import { disposeObjects } from '@/utils'
 import {
 	createRenderLoop,
@@ -14,6 +14,9 @@ import { VIEWER_LAYER_HELPERS, VIEWER_LAYER_MESHES } from '../constants'
 type SceneInitializationCallbacks = {
 	onResize: () => void
 	onFrame: () => void
+	onControlsStart: () => void
+	onControlsChange: () => void
+	onControlsEnd: () => void
 }
 
 type UseViewerSceneParams = {
@@ -21,31 +24,36 @@ type UseViewerSceneParams = {
 }
 
 type ViewerSceneApi = {
-	renderScene: () => void
+	renderScene: RenderScene
 	resetScene: () => void
 	initializeScene: (callbacks: SceneInitializationCallbacks) => void
 	disposeScene: () => void
 }
 
 const useViewerScene = ({ refs }: UseViewerSceneParams): ViewerSceneApi => {
-	const renderScene = useCallback(() => {
-		const containerElement = refs.containerRef.current
-		const renderer = refs.rendererRef.current
-		const camera = refs.cameraRef.current
-		const controls = refs.controlsRef.current
+	const renderScene = useCallback<RenderScene>(
+		({ updateControls = true }: RenderSceneOptions = {}) => {
+			const containerElement = refs.containerRef.current
+			const renderer = refs.rendererRef.current
+			const camera = refs.cameraRef.current
+			const controls = refs.controlsRef.current
 
-		if (!containerElement || !renderer || !camera || !controls) {
-			return
-		}
+			if (!containerElement || !renderer || !camera || !controls) {
+				return
+			}
 
-		const width = containerElement.clientWidth
-		const height = containerElement.clientHeight
-		camera.aspect = width / height
-		camera.updateProjectionMatrix()
-		renderer.setSize(width, height)
-		controls.update()
-		renderer.render(refs.sceneRef.current, camera)
-	}, [refs])
+			const width = containerElement.clientWidth
+			const height = containerElement.clientHeight
+			camera.aspect = width / height
+			camera.updateProjectionMatrix()
+			renderer.setSize(width, height)
+			if (updateControls) {
+				controls.update()
+			}
+			renderer.render(refs.sceneRef.current, camera)
+		},
+		[refs],
+	)
 
 	const resetScene = useCallback(() => {
 		disposeObjects(refs.sceneRef.current)
@@ -54,7 +62,7 @@ const useViewerScene = ({ refs }: UseViewerSceneParams): ViewerSceneApi => {
 	}, [refs])
 
 	const initializeScene = useCallback(
-		({ onResize, onFrame }: SceneInitializationCallbacks) => {
+		({ onResize, onFrame, onControlsStart, onControlsChange, onControlsEnd }: SceneInitializationCallbacks) => {
 			if (refs.rendererRef.current) {
 				return
 			}
@@ -76,6 +84,16 @@ const useViewerScene = ({ refs }: UseViewerSceneParams): ViewerSceneApi => {
 
 			const controls = createViewerControls(camera, renderer)
 			refs.controlsRef.current = controls
+
+			const controlsListeners: ControlsListener[] = [
+				{ type: 'start', handler: onControlsStart },
+				{ type: 'change', handler: onControlsChange },
+				{ type: 'end', handler: onControlsEnd },
+			]
+			for (const listener of controlsListeners) {
+				controls.addEventListener(listener.type, listener.handler)
+			}
+			refs.controlsListenersRef.current = controlsListeners
 
 			refs.rayCasterRef.current.layers.set(VIEWER_LAYER_MESHES)
 
@@ -108,6 +126,13 @@ const useViewerScene = ({ refs }: UseViewerSceneParams): ViewerSceneApi => {
 		refs.resizeObserverRef.current?.disconnect()
 		refs.rendererRef.current?.dispose()
 		refs.rendererRef.current = undefined
+		const controls = refs.controlsRef.current
+		if (controls) {
+			for (const listener of refs.controlsListenersRef.current) {
+				controls.removeEventListener(listener.type, listener.handler)
+			}
+			refs.controlsListenersRef.current = []
+		}
 		refs.cameraRef.current = undefined
 		refs.controlsRef.current = undefined
 	}, [refs])

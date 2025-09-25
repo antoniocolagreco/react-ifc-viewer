@@ -15,6 +15,17 @@ type SelectableIntersection = {
 	intersection: Intersection<IfcMesh>
 }
 
+type ControlsListener = {
+	type: 'start' | 'end' | 'change'
+	handler: () => void
+}
+
+type RenderSceneOptions = {
+	updateControls?: boolean
+}
+
+type RenderScene = (options?: RenderSceneOptions) => void
+
 type ViewerRefs = {
 	containerRef: MutableRef<HTMLDivElement | null>
 	canvasRef: MutableRef<HTMLCanvasElement | null>
@@ -30,6 +41,7 @@ type ViewerRefs = {
 	boundingSphereMeshRef: MutableRef<LambertMesh | undefined>
 	selectedIfcElementRef: MutableRef<IfcElement | undefined>
 	previousSelectedIfcElementRef: MutableRef<IfcElement | undefined>
+	selectedInstanceRecordRef: MutableRef<IfcInstanceRecord | undefined>
 	hoveredIfcElementRef: MutableRef<IfcElement | undefined>
 	previousHoveredIfcElementRef: MutableRef<IfcElement | undefined>
 	selectableIntersectionsRef: MutableRef<SelectableIntersection[]>
@@ -39,6 +51,7 @@ type ViewerRefs = {
 	renderingTimeoutRef: MutableRef<ReturnType<typeof setTimeout> | undefined>
 	ifcMarkerLinksRef: MutableRef<IfcMarkerLink[]>
 	currentLoadedUrlRef: MutableRef<string>
+	controlsListenersRef: MutableRef<ControlsListener[]>
 }
 
-export type { MutableRef, SelectableIntersection, ViewerRefs }
+export type { ControlsListener, MutableRef, RenderScene, RenderSceneOptions, SelectableIntersection, ViewerRefs }

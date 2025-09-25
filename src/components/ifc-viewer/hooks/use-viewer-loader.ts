@@ -10,7 +10,7 @@ import {
 	restoreDataToIfcModelFromProperties,
 	restoreDataToIfcModelFromRecord,
 } from '@/utils'
-import type { IfcLoadingStatus, ViewerRefs } from '../types'
+import type { IfcLoadingStatus, RenderScene, ViewerRefs } from '../types'
 
 type UseViewerLoaderParams = {
 	refs: ViewerRefs
@@ -20,7 +20,7 @@ type UseViewerLoaderParams = {
 	selectableRequirements?: SelectableRequirements[]
 	linksRequirements?: IfcElementLink[]
 	onModelLoaded?: (model: IfcModel) => void
-	renderScene: () => void
+	renderScene: RenderScene
 	resetScene: () => void
 	resetView: () => void
 	setLoadingProgress: (status: IfcLoadingStatus) => void

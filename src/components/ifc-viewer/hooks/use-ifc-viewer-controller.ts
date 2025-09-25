@@ -93,7 +93,7 @@ const useIfcViewerController = (props: IfcViewerProps): UseIfcViewerControllerRe
 		onMeshHover,
 	})
 
-	const { anchors, viewerChildren, processChildren, updateAnchors } = useViewerAnchors({
+	const { anchors, viewerChildren, processChildren, updateAnchors, scheduleAnchorsUpdate } = useViewerAnchors({
 		refs,
 		children,
 		select,
@@ -203,10 +203,21 @@ const useIfcViewerController = (props: IfcViewerProps): UseIfcViewerControllerRe
 			},
 			onFrame: () => {
 				renderScene()
+			},
+			onControlsStart: () => {
+				renderScene({ updateControls: false })
+				updateAnchors()
+			},
+			onControlsChange: () => {
+				renderScene({ updateControls: false })
+				scheduleAnchorsUpdate()
+			},
+			onControlsEnd: () => {
+				renderScene({ updateControls: false })
 				updateAnchors()
 			},
 		})
-	}, [initializeScene, renderScene, updateAnchors])
+	}, [initializeScene, renderScene, scheduleAnchorsUpdate, updateAnchors])
 
 	const currentLoadedUrlRef = refs.currentLoadedUrlRef
 

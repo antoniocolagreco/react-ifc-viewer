@@ -1,8 +1,17 @@
-import { Children, createElement, useCallback, useEffect, useState, type ReactElement, type ReactNode } from 'react'
+import {
+	Children,
+	createElement,
+	useCallback,
+	useEffect,
+	useRef,
+	useState,
+	type ReactElement,
+	type ReactNode,
+} from 'react'
 import type { IfcElement } from '@/classes'
 import { type IfcOverlayProps } from '@/components'
 import { IfcAnchor, type IfcAnchorProps } from '@/components/ifc-anchor'
-import type { IfcMarkerLink } from '@/types'
+import type { IfcInstanceRecord, IfcMarkerLink } from '@/types'
 import {
 	filterIfcElementsByPropertiesAndType,
 	getGroupPosition,
@@ -15,8 +24,8 @@ import type { ViewerRefs } from '../types'
 type UseViewerAnchorsParams = {
 	refs: ViewerRefs
 	children: ReactNode
-	select: (ifcElement?: IfcElement) => void
-	hover: (ifcElement?: IfcElement) => void
+	select: (ifcElement?: IfcElement, instanceRecord?: IfcInstanceRecord) => void
+	hover: (ifcElement?: IfcElement, instanceRecord?: IfcInstanceRecord) => void
 }
 
 type ViewerAnchorsApi = {
@@ -24,11 +33,14 @@ type ViewerAnchorsApi = {
 	viewerChildren: ReactNode[] | undefined
 	processChildren: () => void
 	updateAnchors: () => void
+	scheduleAnchorsUpdate: () => void
 }
 
 const useViewerAnchors = ({ refs, children, select, hover }: UseViewerAnchorsParams): ViewerAnchorsApi => {
 	const [anchors, setAnchors] = useState<ReactElement<IfcAnchorProps>[]>()
 	const [viewerChildren, setViewerChildren] = useState<ReactNode[]>()
+	const anchorThrottleTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+	const pendingAnchorUpdateRef = useRef(false)
 
 	const processIfcMarker = useCallback(
 		(markerElement: ReactElement<IfcOverlayProps>): IfcMarkerLink[] => {
@@ -93,7 +105,7 @@ const useViewerAnchors = ({ refs, children, select, hover }: UseViewerAnchorsPar
 		const nextAnchors: ReactElement<IfcAnchorProps>[] = []
 
 		const markerLinks = refs.ifcMarkerLinksRef.current
-		for (const [index, markerLink] of markerLinks.entries()) {
+		for (const [markerIndex, markerLink] of markerLinks.entries()) {
 			const { element, props } = markerLink
 
 			const ifcElementPosition = getGroupPosition(element, model)
@@ -103,7 +115,7 @@ const useViewerAnchors = ({ refs, children, select, hover }: UseViewerAnchorsPar
 				createElement(
 					IfcAnchor,
 					{
-						key: index,
+						key: markerIndex,
 						position,
 						onSelect: () => {
 							select(element)
@@ -128,6 +140,34 @@ const useViewerAnchors = ({ refs, children, select, hover }: UseViewerAnchorsPar
 		setAnchors(nextAnchors)
 	}, [hover, refs, select])
 
+	const scheduleAnchorsUpdate = useCallback(() => {
+		if (anchorThrottleTimeoutRef.current) {
+			pendingAnchorUpdateRef.current = true
+			return
+		}
+
+		updateAnchors()
+		anchorThrottleTimeoutRef.current = setTimeout(() => {
+			anchorThrottleTimeoutRef.current = undefined
+			if (!pendingAnchorUpdateRef.current) {
+				return
+			}
+			pendingAnchorUpdateRef.current = false
+			scheduleAnchorsUpdate()
+		}, 15)
+	}, [updateAnchors])
+
+	useEffect(() => {
+		return () => {
+			if (!anchorThrottleTimeoutRef.current) {
+				return
+			}
+			clearTimeout(anchorThrottleTimeoutRef.current)
+			anchorThrottleTimeoutRef.current = undefined
+			pendingAnchorUpdateRef.current = false
+		}
+	}, [])
+
 	useEffect(() => {
 		processChildren()
 	}, [processChildren])
@@ -137,6 +177,7 @@ const useViewerAnchors = ({ refs, children, select, hover }: UseViewerAnchorsPar
 		viewerChildren,
 		processChildren,
 		updateAnchors,
+		scheduleAnchorsUpdate,
 	}
 }
 

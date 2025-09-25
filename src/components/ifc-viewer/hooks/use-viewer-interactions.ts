@@ -1,7 +1,7 @@
 import { useCallback } from 'react'
 import { IfcMesh, type IfcElement } from '@/classes'
-import type { SelectableRequirements } from '@/types'
-import type { ViewerRefs, SelectableIntersection } from '../types'
+import type { IfcInstanceRecord, SelectableRequirements } from '@/types'
+import type { ViewerRefs, SelectableIntersection, RenderScene } from '../types'
 import type { MouseEvent } from 'react'
 
 const isSelectableElementAllowed = (
@@ -16,13 +16,13 @@ const isSelectableElementAllowed = (
 
 type UseViewerInteractionsParams = {
 	refs: ViewerRefs
-	renderScene: () => void
+	renderScene: RenderScene
 	updateAnchors: () => void
 	enableMeshSelection: boolean
 	enableMeshHover: boolean
 	selectableRequirements?: SelectableRequirements[]
-	select: (ifcElement?: IfcElement) => void
-	hover: (ifcElement?: IfcElement) => void
+	select: (ifcElement?: IfcElement, instanceRecord?: IfcInstanceRecord) => void
+	hover: (ifcElement?: IfcElement, instanceRecord?: IfcInstanceRecord) => void
 }
 
 type ViewerInteractionsApi = {
@@ -144,13 +144,14 @@ const useViewerInteractions = ({
 
 			const [firstSelectable] = refs.selectableIntersectionsRef.current
 			const ifcElement = firstSelectable?.element
+			const instanceRecord = firstSelectable?.instance
 
 			if (!isSelectableElementAllowed(selectableRequirements, ifcElement)) {
 				select()
 				return
 			}
 
-			select(ifcElement)
+			select(ifcElement, instanceRecord)
 			renderScene()
 			updateAnchors()
 		},
@@ -185,13 +186,14 @@ const useViewerInteractions = ({
 
 			const [firstSelectable] = refs.selectableIntersectionsRef.current
 			const ifcElement = firstSelectable?.element
+			const instanceRecord = firstSelectable?.instance
 
 			if (!isSelectableElementAllowed(selectableRequirements, ifcElement)) {
 				hover()
 				return
 			}
 
-			hover(ifcElement)
+			hover(ifcElement, instanceRecord)
 		},
 		[enableMeshHover, hover, selectableRequirements, updateIntersections, updateMousePointer, refs],
 	)
