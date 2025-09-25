@@ -1,6 +1,6 @@
 {
 	"name": "react-ifc-viewer",
-	"version": "0.7.1",
+	"version": "0.7.2",
 	"description": "an IFC viewer for React",
 	"author": "Antonio Colagreco",
 	"license": "MIT",
@@ -30,7 +30,9 @@
 		"dev": "storybook dev -p 6006",
 		"build:lib": "tsc && vite build",
 		"build:storybook": "storybook build",
-		"lint": "tsc & eslint ./src/**/*.{ts,tsx} --fix",
+		"typecheck": "tsc --noEmit",
+		"lint": "eslint ./src/**/*.{ts,tsx} --fix",
+		"validate": "pnpm run typecheck && pnpm run lint",
 		"format": "prettier . --write --ignore-unknown",
 		"test": "vitest run",
 		"test:watch": "vitest",
