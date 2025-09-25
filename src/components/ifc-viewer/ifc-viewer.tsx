@@ -1,17 +1,55 @@
 'use client'
 
 import clsx from 'clsx'
-import type { FC } from 'react'
+import { forwardRef } from 'react'
 import { ProgressBar } from '@/components/progress-bar'
 import { IFCViewerLoadingMessages } from '@/costants'
 import type { IfcViewerProps } from './types'
 import { useIfcViewerController } from './hooks'
 import './ifc-viewer.css'
 
-const IfcViewer: FC<IfcViewerProps> = props => {
-	const controller = useIfcViewerController(props)
-	const { className, children: _ignoredChildren, ...otherProps } = props
-	void _ignoredChildren
+const IfcViewer = forwardRef<HTMLDivElement, IfcViewerProps>((props, forwardedRef) => {
+	const {
+		url,
+		data,
+		onModelLoaded,
+		hoverColor,
+		selectedColor,
+		links,
+		selectable,
+		alwaysVisible,
+		highlightedSelectables,
+		onMeshSelect,
+		onMeshHover,
+		enableMeshSelection,
+		enableMeshHover,
+		showBoundingSphere,
+		className,
+		children,
+		...restDomProps
+	} = props
+
+	const domProps = restDomProps
+
+	const controller = useIfcViewerController({
+		url,
+		data,
+		onModelLoaded,
+		hoverColor,
+		selectedColor,
+		links,
+		selectable,
+		alwaysVisible,
+		highlightedSelectables,
+		onMeshSelect,
+		onMeshHover,
+		enableMeshSelection,
+		enableMeshHover,
+		showBoundingSphere,
+		className,
+		children,
+		ref: forwardedRef,
+	})
 	const {
 		containerRef,
 		canvasRef,
@@ -26,7 +64,7 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 	} = controller
 
 	return (
-		<div className={clsx('ifc-viewer', className)} ref={containerRef} {...otherProps}>
+		<div {...domProps} className={clsx('ifc-viewer', className)} ref={containerRef}>
 			<canvas
 				ref={canvasRef}
 				onMouseDown={handleMouseDown}
@@ -50,7 +88,9 @@ const IfcViewer: FC<IfcViewerProps> = props => {
 			)}
 		</div>
 	)
-}
+})
+
+IfcViewer.displayName = 'IfcViewer'
 
 export { IfcViewer }
 export type { IfcViewerProps } from './types'
