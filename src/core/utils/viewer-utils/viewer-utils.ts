@@ -1,6 +1,8 @@
 import type { IfcElement, IfcModel } from '@/core/models'
 import type { IfcPosition } from '@/react/components'
-import { Color, MeshLambertMaterial, type PerspectiveCamera, type Vector3, type WebGLRenderer } from 'three'
+import { Color, MeshLambertMaterial, Vector3, type PerspectiveCamera, type WebGLRenderer } from 'three'
+
+const scratchProjectionVector = new Vector3()
 
 /**
  * Transforms a 3D position in the viewport to a 2D screen position.
@@ -14,13 +16,10 @@ const transformViewportPositionToScreenPosition = (
 	camera: PerspectiveCamera,
 	renderer: WebGLRenderer,
 	position: Vector3,
+	target?: IfcPosition,
 ): IfcPosition => {
-	const vector = position.clone()
+	const vector = scratchProjectionVector.copy(position)
 	vector.project(camera)
-
-	vector.setX(vector.x)
-	vector.setY(vector.y)
-	vector.setZ(vector.z)
 
 	const widthHalf = renderer.domElement.clientWidth / 2
 	const heightHalf = renderer.domElement.clientHeight / 2
@@ -28,7 +27,10 @@ const transformViewportPositionToScreenPosition = (
 	const x = vector.x * widthHalf + widthHalf
 	const y = -(vector.y * heightHalf) + heightHalf
 
-	return { x: Number.isFinite(x) ? x : 0, y: Number.isFinite(y) ? y : 0 }
+	const projected: IfcPosition = target ?? { x: 0, y: 0 }
+	projected.x = Number.isFinite(x) ? x : 0
+	projected.y = Number.isFinite(y) ? y : 0
+	return projected
 }
 
 const setMaterialToSelected = (

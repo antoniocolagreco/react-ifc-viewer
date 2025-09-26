@@ -8,6 +8,7 @@ import {
 	transformViewportPositionToScreenPosition,
 } from '@/core/utils'
 import { type IfcOverlayProps } from '@/react/components'
+import type { IfcPosition } from '@/react/components/ifc-viewer/types'
 import { IfcAnchor, type IfcAnchorProps } from '@/react/components/ifc-anchor'
 import {
 	Children,
@@ -36,11 +37,44 @@ type ViewerAnchorsApi = {
 	scheduleAnchorsUpdate: () => void
 }
 
+const MATRIX_ELEMENTS = 16
+const MATRIX_EPSILON = 1e-4
+
+const createMarkerSignature = (markerLinks: IfcMarkerLink[]): string => {
+	if (markerLinks.length === 0) {
+		return ''
+	}
+	return markerLinks.map(link => link.element.userData.expressId).join('|')
+}
+
+const areMatrixElementsEqual = (previous: Float32Array | undefined, next: ArrayLike<number>): boolean => {
+	if (!previous) {
+		return false
+	}
+	for (let index = 0; index < MATRIX_ELEMENTS; index += 1) {
+		const difference = (previous[index] ?? 0) - (next[index] ?? 0)
+		if (Math.abs(difference) > MATRIX_EPSILON) {
+			return false
+		}
+	}
+	return true
+}
+
 const useViewerAnchors = ({ refs, children, select, hover }: UseViewerAnchorsParams): ViewerAnchorsApi => {
 	const [anchors, setAnchors] = useState<ReactElement<IfcAnchorProps>[]>()
 	const [viewerChildren, setViewerChildren] = useState<ReactNode[]>()
-	const anchorThrottleTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
-	const pendingAnchorUpdateRef = useRef(false)
+	const anchorAnimationFrameRef = useRef<number | undefined>(undefined)
+	// Cache screen projections and camera state so anchors only recompute when something truly changes.
+	const screenPositionCacheRef = useRef<Map<number, IfcPosition>>(new Map())
+	const anchorStateRef = useRef<
+		| {
+				cameraMatrix: Float32Array
+				viewportWidth: number
+				viewportHeight: number
+				signature: string
+		  }
+		| undefined
+	>(undefined)
 
 	const processIfcMarker = useCallback(
 		(markerElement: ReactElement<IfcOverlayProps>): IfcMarkerLink[] => {
@@ -60,7 +94,11 @@ const useViewerAnchors = ({ refs, children, select, hover }: UseViewerAnchorsPar
 				markerRequirements.expressId,
 			)
 
-			return ifcElements.map(ifcElement => ({ element: ifcElement, props: overlayProps }))
+			return ifcElements.map(ifcElement => ({
+				element: ifcElement,
+				props: overlayProps,
+				worldPosition: getGroupPosition(ifcElement, model),
+			}))
 		},
 		[refs],
 	)
@@ -91,25 +129,51 @@ const useViewerAnchors = ({ refs, children, select, hover }: UseViewerAnchorsPar
 		}
 
 		refs.ifcMarkerLinksRef.current = nextMarkerLinks
+		screenPositionCacheRef.current.clear()
+		anchorStateRef.current = undefined
 		setViewerChildren(nextChildren)
 	}, [children, processIfcMarker, refs])
 
 	const updateAnchors = useCallback(() => {
 		const camera = refs.cameraRef.current
 		const renderer = refs.rendererRef.current
-		const model = refs.modelRef.current
-		if (!camera || !renderer || !model) {
+		if (!camera || !renderer) {
 			return
 		}
 
+		const markerLinks = refs.ifcMarkerLinksRef.current
+		const viewportWidth = renderer.domElement.clientWidth
+		const viewportHeight = renderer.domElement.clientHeight
+		const markerSignature = createMarkerSignature(markerLinks)
+		const cameraMatrixElements = camera.matrixWorld.elements
+
+		const previousState = anchorStateRef.current
+		const cameraChanged = !areMatrixElementsEqual(previousState?.cameraMatrix, cameraMatrixElements)
+		const viewportChanged =
+			!previousState ||
+			previousState.viewportWidth !== viewportWidth ||
+			previousState.viewportHeight !== viewportHeight
+		const markersChanged = !previousState || previousState.signature !== markerSignature
+
+		if (!cameraChanged && !viewportChanged && !markersChanged) {
+			return
+		}
+
+		const screenPositions = screenPositionCacheRef.current
+		const processedExpressIds = new Set<number>()
 		const nextAnchors: ReactElement<IfcAnchorProps>[] = []
 
-		const markerLinks = refs.ifcMarkerLinksRef.current
 		for (const [markerIndex, markerLink] of markerLinks.entries()) {
-			const { element, props } = markerLink
+			const { element, props, worldPosition } = markerLink
+			const expressId = element.userData.expressId
+			let position = screenPositions.get(expressId)
+			if (!position) {
+				position = { x: 0, y: 0 }
+				screenPositions.set(expressId, position)
+			}
 
-			const ifcElementPosition = getGroupPosition(element, model)
-			const position = transformViewportPositionToScreenPosition(camera, renderer, ifcElementPosition)
+			transformViewportPositionToScreenPosition(camera, renderer, worldPosition, position)
+			processedExpressIds.add(expressId)
 
 			nextAnchors.push(
 				createElement(
@@ -137,34 +201,51 @@ const useViewerAnchors = ({ refs, children, select, hover }: UseViewerAnchorsPar
 			)
 		}
 
+		for (const expressId of Array.from(screenPositions.keys())) {
+			if (!processedExpressIds.has(expressId)) {
+				screenPositions.delete(expressId)
+			}
+		}
+
+		if (!previousState) {
+			anchorStateRef.current = {
+				cameraMatrix: Float32Array.from(cameraMatrixElements),
+				viewportWidth,
+				viewportHeight,
+				signature: markerSignature,
+			}
+		} else {
+			previousState.cameraMatrix.set(cameraMatrixElements)
+			previousState.viewportWidth = viewportWidth
+			previousState.viewportHeight = viewportHeight
+			previousState.signature = markerSignature
+		}
+
 		setAnchors(nextAnchors)
 	}, [hover, refs, select])
 
 	const scheduleAnchorsUpdate = useCallback(() => {
-		if (anchorThrottleTimeoutRef.current) {
-			pendingAnchorUpdateRef.current = true
+		if (typeof window === 'undefined') {
 			return
 		}
-
-		updateAnchors()
-		anchorThrottleTimeoutRef.current = setTimeout(() => {
-			anchorThrottleTimeoutRef.current = undefined
-			if (!pendingAnchorUpdateRef.current) {
-				return
-			}
-			pendingAnchorUpdateRef.current = false
-			scheduleAnchorsUpdate()
-		}, 15)
+		if (anchorAnimationFrameRef.current !== undefined) {
+			return
+		}
+		anchorAnimationFrameRef.current = requestAnimationFrame(() => {
+			anchorAnimationFrameRef.current = undefined
+			updateAnchors()
+		})
 	}, [updateAnchors])
 
 	useEffect(() => {
 		return () => {
-			if (!anchorThrottleTimeoutRef.current) {
+			if (typeof window === 'undefined') {
 				return
 			}
-			clearTimeout(anchorThrottleTimeoutRef.current)
-			anchorThrottleTimeoutRef.current = undefined
-			pendingAnchorUpdateRef.current = false
+			if (anchorAnimationFrameRef.current !== undefined) {
+				cancelAnimationFrame(anchorAnimationFrameRef.current)
+				anchorAnimationFrameRef.current = undefined
+			}
 		}
 	}, [])
 

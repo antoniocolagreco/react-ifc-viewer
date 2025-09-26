@@ -31,22 +31,51 @@ type ViewerSceneApi = {
 }
 
 const useViewerScene = ({ refs }: UseViewerSceneParams): ViewerSceneApi => {
+	const updateViewportSize = useCallback(() => {
+		const containerElement = refs.containerRef.current
+		const renderer = refs.rendererRef.current
+		const camera = refs.cameraRef.current
+
+		if (!containerElement || !renderer || !camera) {
+			return false
+		}
+
+		const width = containerElement.clientWidth
+		const height = containerElement.clientHeight
+		if (width === 0 || height === 0) {
+			return false
+		}
+
+		// Viewport size is cached so RAF renders do not trigger extra DOM reads every frame.
+		const storedSize = refs.viewportSizeRef.current
+		if (storedSize.width === width && storedSize.height === height) {
+			return false
+		}
+
+		storedSize.width = width
+		storedSize.height = height
+
+		renderer.setSize(width, height, false)
+		camera.aspect = width / height
+		camera.updateProjectionMatrix()
+		return true
+	}, [refs])
+
 	const renderScene = useCallback<RenderScene>(
 		({ updateControls = true }: RenderSceneOptions = {}) => {
-			const containerElement = refs.containerRef.current
 			const renderer = refs.rendererRef.current
 			const camera = refs.cameraRef.current
 			const controls = refs.controlsRef.current
 
-			if (!containerElement || !renderer || !camera || !controls) {
+			if (!renderer || !camera || !controls) {
 				return
 			}
 
-			const width = containerElement.clientWidth
-			const height = containerElement.clientHeight
-			camera.aspect = width / height
-			camera.updateProjectionMatrix()
-			renderer.setSize(width, height)
+			const { width, height } = refs.viewportSizeRef.current
+			if (width === 0 || height === 0) {
+				return
+			}
+
 			if (updateControls) {
 				controls.update()
 			}
@@ -102,11 +131,20 @@ const useViewerScene = ({ refs }: UseViewerSceneParams): ViewerSceneApi => {
 				throw new Error('Container not found')
 			}
 
-			refs.resizeObserverRef.current = createResizeObserver(containerElement, onResize)
+			const applyViewportResize = () => {
+				const hasResized = updateViewportSize()
+				if (hasResized) {
+					onResize()
+				}
+			}
+
+			refs.resizeObserverRef.current = createResizeObserver(containerElement, applyViewportResize)
+			applyViewportResize()
 
 			resetScene()
 
 			const renderLoop = createRenderLoop(() => {
+				// Skips rendering when the viewer is paused, keeping RAF scheduled without extra clean-up.
 				if (!refs.renderingEnabledRef.current) {
 					return
 				}
@@ -115,7 +153,7 @@ const useViewerScene = ({ refs }: UseViewerSceneParams): ViewerSceneApi => {
 			renderLoop.start()
 			refs.renderLoopRef.current = renderLoop
 		},
-		[refs, resetScene],
+		[refs, resetScene, updateViewportSize],
 	)
 
 	const disposeScene = useCallback(() => {

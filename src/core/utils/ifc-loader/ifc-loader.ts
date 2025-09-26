@@ -48,6 +48,8 @@ const loadIfcModel: LoadIfcFunctionType = async (ifcBuffer, onLoad, onError, opt
 	}
 }
 
+const PROPERTY_PROGRESS_BATCH_SIZE = 25
+
 type LoadIfcDataType = (
 	ifcBuffer: Uint8Array,
 	onLoad: (data: IfcElementData[]) => void,
@@ -99,7 +101,9 @@ const loadIfcProperties: LoadIfcDataType = async (ifcBuffer, onLoad, onProgress,
 			const ifcUserData = await promise
 			data.push(ifcUserData)
 			loaded++
-			onProgress({ state: 'PROGRESS', loaded, total })
+			if (loaded % PROPERTY_PROGRESS_BATCH_SIZE === 0 || loaded === total) {
+				onProgress({ state: 'PROGRESS', loaded, total })
+			}
 		}
 
 		onProgress({ state: 'DONE', loaded, total })

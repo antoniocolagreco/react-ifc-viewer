@@ -8,9 +8,14 @@ type CenterObjectSettings = {
 
 const centerAlignment: CenterObjectSettings = { x: 'center', y: 'center', z: 'center' }
 
+// Shared scratch objects ensure repeated alignment calls stay allocation-free.
+const boundingBoxScratch = new Box3()
+const centerVectorScratch = new Vector3()
+
 const alignObject = (object: Object3D, position: CenterObjectSettings = centerAlignment): void => {
-	const box = new Box3().setFromObject(object)
-	const center = box.getCenter(new Vector3())
+	const box = boundingBoxScratch
+	box.setFromObject(object)
+	const center = box.getCenter(centerVectorScratch)
 
 	// Offsets for each axis
 	let xOffset = 0

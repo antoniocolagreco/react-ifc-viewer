@@ -1,8 +1,12 @@
-import { useCallback } from 'react'
 import { IfcMesh, type IfcElement } from '@/core/models'
 import type { IfcInstanceRecord, SelectableRequirements } from '@/core/types'
-import type { ViewerRefs, SelectableIntersection, RenderScene } from '../types'
 import type { MouseEvent } from 'react'
+import { useCallback, useRef } from 'react'
+import type { RenderScene, SelectableIntersection, ViewerRefs } from '../types'
+
+// Small pointer deltas and a shorter idle window keep hover raycasts from spamming the main thread.
+const POINTER_MOVE_THRESHOLD_PX = 2
+const RENDERING_IDLE_TIMEOUT_MS = 250
 
 const isSelectableElementAllowed = (
 	selectableRequirements: SelectableRequirements[] | undefined,
@@ -42,6 +46,8 @@ const useViewerInteractions = ({
 	select,
 	hover,
 }: UseViewerInteractionsParams): ViewerInteractionsApi => {
+	// Track the last pointer location so we only raycast when the cursor meaningfully moves.
+	const lastPointerPositionRef = useRef<{ x: number; y: number }>({ x: Number.NaN, y: Number.NaN })
 	const updateMousePointer = useCallback(
 		(event: MouseEvent) => {
 			const canvasElement = refs.canvasRef.current
@@ -71,8 +77,14 @@ const useViewerInteractions = ({
 			return
 		}
 
+		const raycastTargets = refs.raycastTargetsRef.current
+		if (raycastTargets.length === 0) {
+			refs.selectableIntersectionsRef.current = []
+			return
+		}
+
 		refs.rayCasterRef.current.setFromCamera(refs.pointerRef.current, camera)
-		const intersections = refs.rayCasterRef.current.intersectObjects(refs.sceneRef.current.children, true)
+		const intersections = refs.rayCasterRef.current.intersectObjects(raycastTargets, false)
 
 		const selectableIntersections: SelectableIntersection[] = []
 		for (const intersection of intersections) {
@@ -102,6 +114,8 @@ const useViewerInteractions = ({
 	}, [refs])
 
 	const handleMouseLeave = useCallback(() => {
+		lastPointerPositionRef.current.x = Number.NaN
+		lastPointerPositionRef.current.y = Number.NaN
 		hover()
 	}, [hover])
 
@@ -169,13 +183,27 @@ const useViewerInteractions = ({
 
 	const handleMouseMove = useCallback(
 		(event: MouseEvent<HTMLCanvasElement>) => {
+			const lastPointerPosition = lastPointerPositionRef.current
+			const previousX = lastPointerPosition.x
+			const previousY = lastPointerPosition.y
+			const deltaX = Math.abs(event.clientX - previousX)
+			const deltaY = Math.abs(event.clientY - previousY)
+			const shouldProcessPointer =
+				Number.isNaN(previousX) || deltaX >= POINTER_MOVE_THRESHOLD_PX || deltaY >= POINTER_MOVE_THRESHOLD_PX
+			lastPointerPosition.x = event.clientX
+			lastPointerPosition.y = event.clientY
+
+			if (!shouldProcessPointer) {
+				return
+			}
+
 			refs.renderingEnabledRef.current = true
 			if (refs.renderingTimeoutRef.current) {
 				clearTimeout(refs.renderingTimeoutRef.current)
 			}
 			refs.renderingTimeoutRef.current = setTimeout(() => {
 				refs.renderingEnabledRef.current = false
-			}, 1000)
+			}, RENDERING_IDLE_TIMEOUT_MS)
 
 			if (!enableMeshHover) {
 				return

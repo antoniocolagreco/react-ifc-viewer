@@ -6,13 +6,21 @@ import {
 	MeshLambertMaterial,
 	Sphere,
 	SphereGeometry,
+	Vector3,
 	type Camera,
 	type Object3D,
 	type PerspectiveCamera,
-	type Vector3,
 } from 'three'
 import type { OrbitControls } from 'three/examples/jsm/Addons.js'
 import { DEG2RAD } from 'three/src/math/MathUtils.js'
+
+// Reuse common math helpers to keep hot camera utilities allocation-free and GC friendly.
+const aggregateBoxScratch = new Box3()
+const instanceBoxScratch = new Box3()
+const geometryBoundingBoxScratch = new Box3()
+const directionVectorScratch = new Vector3()
+const distanceVectorScratch = new Vector3()
+const coordinatesVectorScratch = new Vector3()
 
 /**
  * Creates a mesh representing a bounding sphere with a Lambert material.
@@ -38,20 +46,27 @@ const createSphereMesh = (sphere: Sphere): LambertMesh => {
  * @param object - A single Object3D or an array of Object3D instances to calculate the bounding sphere for.
  * @returns A Sphere that bounds the provided object(s).
  */
-const createBoundingSphere = (object: Object3D | Object3D[]): Sphere => {
+const createBoundingSphere = (object: Object3D | Object3D[], target?: Sphere): Sphere => {
 	const meshes = Array.isArray(object) ? object : [object]
-	const bb = new Box3()
+	const boundingBox = aggregateBoxScratch
+	boundingBox.makeEmpty()
 	for (const mesh of meshes) {
-		bb.expandByObject(mesh)
+		boundingBox.expandByObject(mesh)
 	}
-	const sphere = new Sphere()
-	bb.getBoundingSphere(sphere)
+	const sphere = target ?? new Sphere()
+	if (boundingBox.isEmpty()) {
+		sphere.center.set(0, 0, 0)
+		sphere.radius = 0
+		return sphere
+	}
+	boundingBox.getBoundingSphere(sphere)
 	return sphere
 }
 
-const createBoundingSphereFromElement = (ifcElement: IfcElement, ifcModel: IfcModel): Sphere => {
-	const aggregateBox = new Box3()
-	const instanceBox = new Box3()
+const createBoundingSphereFromElement = (ifcElement: IfcElement, ifcModel: IfcModel, target?: Sphere): Sphere => {
+	const aggregateBox = aggregateBoxScratch
+	aggregateBox.makeEmpty()
+	const instanceBox = instanceBoxScratch
 	for (const record of ifcElement.getInstanceRecords()) {
 		const geometry = ifcModel.getElementGeometry(record.geometryId) ?? record.handle?.mesh.geometry
 		if (!geometry) {
@@ -67,7 +82,7 @@ const createBoundingSphereFromElement = (ifcElement: IfcElement, ifcModel: IfcMo
 		instanceBox.applyMatrix4(record.matrix)
 		aggregateBox.union(instanceBox)
 	}
-	const sphere = new Sphere()
+	const sphere = target ?? new Sphere()
 	if (aggregateBox.isEmpty()) {
 		sphere.center.set(0, 0, 0)
 		sphere.radius = 0
@@ -78,9 +93,13 @@ const createBoundingSphereFromElement = (ifcElement: IfcElement, ifcModel: IfcMo
 	return sphere
 }
 
-const createBoundingSphereFromInstanceRecord = (instanceRecord: IfcInstanceRecord, ifcModel: IfcModel): Sphere => {
+const createBoundingSphereFromInstanceRecord = (
+	instanceRecord: IfcInstanceRecord,
+	ifcModel: IfcModel,
+	target?: Sphere,
+): Sphere => {
 	const geometry = ifcModel.getElementGeometry(instanceRecord.geometryId) ?? instanceRecord.handle?.mesh.geometry
-	const sphere = new Sphere()
+	const sphere = target ?? new Sphere()
 	if (!geometry) {
 		sphere.center.set(0, 0, 0)
 		sphere.radius = 0
@@ -89,7 +108,13 @@ const createBoundingSphereFromInstanceRecord = (instanceRecord: IfcInstanceRecor
 	if (!geometry.boundingBox) {
 		geometry.computeBoundingBox()
 	}
-	const boundingBox = geometry.boundingBox?.clone() ?? new Box3()
+	const geometryBoundingBox = geometry.boundingBox
+	if (!geometryBoundingBox) {
+		sphere.center.set(0, 0, 0)
+		sphere.radius = 0
+		return sphere
+	}
+	const boundingBox = geometryBoundingBoxScratch.copy(geometryBoundingBox)
 	boundingBox.applyMatrix4(instanceRecord.matrix)
 	if (boundingBox.isEmpty()) {
 		sphere.center.set(0, 0, 0)
@@ -135,9 +160,9 @@ const fitBoundingSphere = (
 	const distance = findMinimumDistanceForBoundingSphere(sphere, camera)
 	const finalDistance = Math.max(distance, minDistance) * margin
 	const cameraPosition = camera.position
-	const direction = sphere.center.clone().sub(cameraPosition).normalize()
-	const distanceVector = direction.multiplyScalar(-finalDistance)
-	const newCoordinates = sphere.center.clone().add(distanceVector)
+	const direction = directionVectorScratch.copy(sphere.center).sub(cameraPosition).normalize()
+	const distanceVector = distanceVectorScratch.copy(direction).multiplyScalar(-finalDistance)
+	const newCoordinates = coordinatesVectorScratch.copy(sphere.center).add(distanceVector)
 	camera.position.copy(newCoordinates)
 	controls.target.copy(sphere.center)
 	controls.update()
@@ -153,9 +178,9 @@ const fitBoundingSphere = (
  */
 const moveTo = (destination: Vector3, camera: Camera, controls: OrbitControls, distance: number): void => {
 	const cameraPosition = camera.position
-	const direction = destination.clone().sub(cameraPosition).normalize()
-	const distanceVector = direction.multiplyScalar(-distance)
-	const newCoordinates = destination.clone().add(distanceVector)
+	const direction = directionVectorScratch.copy(destination).sub(cameraPosition).normalize()
+	const distanceVector = distanceVectorScratch.copy(direction).multiplyScalar(-distance)
+	const newCoordinates = coordinatesVectorScratch.copy(destination).add(distanceVector)
 	camera.position.copy(newCoordinates)
 	controls.target.copy(destination)
 	controls.update()

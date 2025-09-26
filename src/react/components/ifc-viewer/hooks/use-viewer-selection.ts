@@ -54,6 +54,16 @@ const useViewerSelection = ({
 	const [viewMode, setViewMode] = useState<IfcViewMode>('VIEW_MODE_ALL')
 	const [cursorStyle, setCursorStyle] = useState<CSSProperties>({ cursor: 'default' })
 
+	// Cache only the meshes we actually raycast so hover/select stays lean.
+	const refreshRaycastTargets = useCallback(() => {
+		const model = refs.modelRef.current
+		if (!model) {
+			refs.raycastTargetsRef.current = []
+			return
+		}
+		refs.raycastTargetsRef.current = model.getAllMeshes().filter(mesh => mesh.count > 0)
+	}, [refs])
+
 	const updateBoundingSphere = useCallback(() => {
 		const model = refs.modelRef.current
 		if (!model) {
@@ -63,14 +73,20 @@ const useViewerSelection = ({
 		const selectedInstanceRecord = refs.selectedInstanceRecordRef.current
 		const selectedElement = refs.selectedIfcElementRef.current
 
-		let boundingSphere: Sphere
+		// Reuse the existing sphere instance to avoid thrashing the GC during selection changes.
+		const boundingSphere = refs.boundingSphereRef.current ?? new Sphere()
 		if (selectedInstanceRecord) {
-			boundingSphere = createBoundingSphereFromInstanceRecord(selectedInstanceRecord, model)
+			createBoundingSphereFromInstanceRecord(selectedInstanceRecord, model, boundingSphere)
 		} else if (selectedElement) {
-			boundingSphere = createBoundingSphereFromElement(selectedElement, model)
+			createBoundingSphereFromElement(selectedElement, model, boundingSphere)
 		} else {
 			const meshes = model.getAllMeshes()
-			boundingSphere = meshes.length === 0 ? new Sphere() : createBoundingSphere(meshes)
+			if (meshes.length === 0) {
+				boundingSphere.center.set(0, 0, 0)
+				boundingSphere.radius = 0
+			} else {
+				createBoundingSphere(meshes, boundingSphere)
+			}
 		}
 
 		refs.boundingSphereRef.current = boundingSphere
@@ -139,7 +155,8 @@ const useViewerSelection = ({
 		for (const ifcElement of model.getElements()) {
 			updateMeshDisplay(ifcElement)
 		}
-	}, [refs, updateMeshDisplay])
+		refreshRaycastTargets()
+	}, [refreshRaycastTargets, refs, updateMeshDisplay])
 
 	const switchSelectedMesh = useCallback(() => {
 		if (refs.previousSelectedIfcElementRef.current) {
@@ -148,7 +165,8 @@ const useViewerSelection = ({
 		if (refs.selectedIfcElementRef.current) {
 			updateMeshDisplay(refs.selectedIfcElementRef.current)
 		}
-	}, [refs, updateMeshDisplay])
+		refreshRaycastTargets()
+	}, [refreshRaycastTargets, refs, updateMeshDisplay])
 
 	const switchHoveredMesh = useCallback(() => {
 		if (refs.previousHoveredIfcElementRef.current) {
@@ -157,7 +175,8 @@ const useViewerSelection = ({
 		if (refs.hoveredIfcElementRef.current) {
 			updateMeshDisplay(refs.hoveredIfcElementRef.current)
 		}
-	}, [refs, updateMeshDisplay])
+		refreshRaycastTargets()
+	}, [refreshRaycastTargets, refs, updateMeshDisplay])
 
 	const select = useCallback(
 		(ifcElement?: IfcElement, instanceRecord?: IfcInstanceRecord) => {

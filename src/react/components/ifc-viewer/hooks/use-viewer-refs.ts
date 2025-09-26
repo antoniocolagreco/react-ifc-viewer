@@ -1,7 +1,7 @@
 import { useMemo, useRef } from 'react'
 import { Raycaster, Scene, Sphere, Vector2, type PerspectiveCamera, type WebGLRenderer } from 'three'
 import type { OrbitControls } from 'three/examples/jsm/Addons.js'
-import type { IfcElement, IfcModel } from '@/core/models'
+import type { IfcElement, IfcMesh, IfcModel } from '@/core/models'
 import type { IfcInstanceRecord, IfcMarkerLink, LambertMesh } from '@/core/types'
 import type { IfcMouseState } from '../types'
 import type { RenderLoop } from '../scene'
@@ -23,6 +23,8 @@ const useViewerRefs: ViewerRefsFactory = () => {
 	const sceneRef = useRef<Scene>(new Scene())
 	const modelRef = useRef<IfcModel | undefined>(undefined)
 	const rayCasterRef = useRef<Raycaster>(new Raycaster())
+	// Store reusable raycast targets so callers never traverse the whole scene graph.
+	const raycastTargetsRef = useRef<IfcMesh[]>([])
 
 	const pointerRef = useRef<Vector2>(new Vector2()) as MutableVector2Ref
 
@@ -46,6 +48,8 @@ const useViewerRefs: ViewerRefsFactory = () => {
 	const ifcMarkerLinksRef = useRef<IfcMarkerLink[]>([])
 	const currentLoadedUrlRef = useRef<string>('')
 	const controlsListenersRef = useRef<ControlsListener[]>([])
+	// Keep the latest viewport size cached to avoid redundant DOM reads inside the render loop.
+	const viewportSizeRef = useRef<{ width: number; height: number }>({ width: 0, height: 0 })
 
 	const viewerRefs = useMemo<ViewerRefs>(
 		() => ({
@@ -56,6 +60,7 @@ const useViewerRefs: ViewerRefsFactory = () => {
 			controlsRef,
 			renderLoopRef,
 			rayCasterRef,
+			raycastTargetsRef,
 			sceneRef,
 			modelRef,
 			pointerRef,
@@ -74,6 +79,7 @@ const useViewerRefs: ViewerRefsFactory = () => {
 			ifcMarkerLinksRef,
 			currentLoadedUrlRef,
 			controlsListenersRef,
+			viewportSizeRef,
 		}),
 		[],
 	)

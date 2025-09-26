@@ -34,6 +34,7 @@ type ViewerRefs = {
 	controlsRef: MutableRef<OrbitControls | undefined>
 	renderLoopRef: MutableRef<RenderLoop | undefined>
 	rayCasterRef: MutableRef<Raycaster>
+	raycastTargetsRef: MutableRef<IfcMesh[]>
 	sceneRef: MutableRef<Scene>
 	modelRef: MutableRef<IfcModel | undefined>
 	pointerRef: MutableRef<Vector2>
@@ -52,6 +53,7 @@ type ViewerRefs = {
 	ifcMarkerLinksRef: MutableRef<IfcMarkerLink[]>
 	currentLoadedUrlRef: MutableRef<string>
 	controlsListenersRef: MutableRef<ControlsListener[]>
+	viewportSizeRef: MutableRef<{ width: number; height: number }>
 }
 
 export type { ControlsListener, MutableRef, RenderScene, RenderSceneOptions, SelectableIntersection, ViewerRefs }

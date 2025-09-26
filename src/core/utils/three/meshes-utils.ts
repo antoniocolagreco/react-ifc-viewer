@@ -146,9 +146,12 @@ const cloneMesh = (mesh: IfcMesh): IfcMesh => {
 	return mesh.clone()
 }
 
+// Keep a single bounding box instance to avoid per-record allocations during aggregation.
+const instanceBoundingBoxScratch = new Box3()
+
 const computeIfcElementBoundingBox = (ifcElement: IfcElement, ifcModel: IfcModel): Box3 => {
 	const aggregateBox = new Box3()
-	const instanceBox = new Box3()
+	const instanceBox = instanceBoundingBoxScratch
 	for (const record of ifcElement.getInstanceRecords()) {
 		const geometry = ifcModel.getElementGeometry(record.geometryId) ?? record.handle?.mesh.geometry
 		if (!geometry) {

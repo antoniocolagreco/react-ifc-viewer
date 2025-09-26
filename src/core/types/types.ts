@@ -1,7 +1,14 @@
 import type { IfcElement, IfcMesh } from '@/core/models'
 import type { IfcOverlayProps } from '@/react/components'
 import type { ReactNode } from 'react'
-import { type Matrix4, type BufferGeometry, type Mesh, type MeshLambertMaterial, type ShaderMaterial } from 'three'
+import {
+	type Matrix4,
+	type BufferGeometry,
+	type Mesh,
+	type MeshLambertMaterial,
+	type ShaderMaterial,
+	type Vector3,
+} from 'three'
 
 type ExpressId = number
 
@@ -63,6 +70,7 @@ type IfcElementLink = {
 type IfcMarkerLink = {
 	element: IfcElement
 	props: IfcOverlayProps
+	worldPosition: Vector3
 }
 
 type GeometryId = string

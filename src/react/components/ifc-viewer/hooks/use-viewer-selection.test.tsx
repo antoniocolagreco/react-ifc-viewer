@@ -59,6 +59,7 @@ const createViewerRefs = (modelOverrides: Partial<ViewerRefs['modelRef']['curren
 		controlsRef: createMutableRef(createControlsStub()),
 		renderLoopRef: createMutableRef(undefined),
 		rayCasterRef: createMutableRef(new Raycaster()),
+		raycastTargetsRef: createMutableRef([]),
 		sceneRef: createMutableRef(new Scene()),
 		modelRef: createMutableRef(mockModel as ViewerRefs['modelRef']['current']),
 		pointerRef: createMutableRef(new Vector2()),
@@ -77,6 +78,7 @@ const createViewerRefs = (modelOverrides: Partial<ViewerRefs['modelRef']['curren
 		ifcMarkerLinksRef: createMutableRef([]),
 		currentLoadedUrlRef: createMutableRef(''),
 		controlsListenersRef: createMutableRef([]),
+		viewportSizeRef: createMutableRef({ width: 0, height: 0 }),
 	}
 }
 
@@ -101,13 +103,38 @@ describe('useViewerSelection', () => {
 		renderScene.mockReset()
 
 		mockCreateBoundingSphere.mockReset()
-		mockCreateBoundingSphere.mockReturnValue(new Sphere())
+		// Mirror the production optimisation by mutating the provided sphere instead of returning a fresh instance.
+		mockCreateBoundingSphere.mockImplementation((_objects, target: Sphere | undefined) => {
+			if (target) {
+				target.center.set(0, 0, 0)
+				target.radius = 0
+				return target
+			}
+			return new Sphere()
+		})
 
 		mockCreateBoundingSphereFromElement.mockReset()
-		mockCreateBoundingSphereFromElement.mockReturnValue(new Sphere())
+		// Tests keep the shared-object behaviour aligned with runtime by mutating the incoming target.
+		mockCreateBoundingSphereFromElement.mockImplementation((_element, _model, target: Sphere | undefined) => {
+			if (target) {
+				target.center.set(0, 0, 0)
+				target.radius = 0
+				return target
+			}
+			return new Sphere()
+		})
 
 		mockCreateBoundingSphereFromInstanceRecord.mockReset()
-		mockCreateBoundingSphereFromInstanceRecord.mockReturnValue(new Sphere(new Vector3(1, 2, 3), 4))
+		mockCreateBoundingSphereFromInstanceRecord.mockImplementation((_record, _model, target: Sphere | undefined) => {
+			const center = new Vector3(1, 2, 3)
+			const radius = 4
+			if (target) {
+				target.center.copy(center)
+				target.radius = radius
+				return target
+			}
+			return new Sphere(center, radius)
+		})
 
 		mockCreateSphereMesh.mockReset()
 		mockCreateSphereMesh.mockReturnValue({ layers: { set: vi.fn() } })
@@ -165,7 +192,11 @@ describe('useViewerSelection', () => {
 		expect(refs.selectedIfcElementRef.current).toBe(element)
 		expect(refs.selectedInstanceRecordRef.current).toBe(instanceRecord)
 		expect(refs.boundingSphereRef.current?.center).toEqual(new Vector3(1, 2, 3))
-		expect(mockCreateBoundingSphereFromInstanceRecord).toHaveBeenCalledWith(instanceRecord, expect.any(Object))
+		expect(mockCreateBoundingSphereFromInstanceRecord).toHaveBeenCalledWith(
+			instanceRecord,
+			expect.any(Object),
+			expect.any(Sphere),
+		)
 		expect(renderScene).toHaveBeenCalled()
 	})
 
@@ -179,7 +210,16 @@ describe('useViewerSelection', () => {
 			state: 'default',
 		}
 		const boundingSphere = new Sphere(new Vector3(4, 5, 6), 9)
-		mockCreateBoundingSphereFromInstanceRecord.mockReturnValueOnce(boundingSphere)
+		mockCreateBoundingSphereFromInstanceRecord.mockImplementationOnce(
+			(_record, _model, target: Sphere | undefined) => {
+				if (target) {
+					target.center.copy(boundingSphere.center)
+					target.radius = boundingSphere.radius
+					return target
+				}
+				return boundingSphere
+			},
+		)
 
 		const refs = createViewerRefs()
 		const { result } = renderHook(() =>
@@ -206,7 +246,8 @@ describe('useViewerSelection', () => {
 			throw new Error('fitBoundingSphere was not called')
 		}
 		const [sphereArg, cameraArg, controlsArg] = lastCall as [Sphere, PerspectiveCamera, OrbitControls]
-		expect(sphereArg).toBe(boundingSphere)
+		expect(sphereArg.center).toEqual(boundingSphere.center)
+		expect(sphereArg.radius).toBe(boundingSphere.radius)
 		expect(cameraArg).toBeInstanceOf(PerspectiveCamera)
 		expect(controlsArg.target).toBeInstanceOf(Vector3)
 		expect(renderScene).toHaveBeenCalled()

@@ -5,13 +5,13 @@
 		"target": "ESNext",
 
 		// Include a list of type definitions for build-in JS APIs.
-		"lib": ["DOM", "DOM.Iterable", "ESNext"],
+		"lib": ["DOM", "DOM.Iterable", "ESNext", "WebWorker"],
 
 		// Specify the module system for the output files. It's not required for Vite but good to have.
 		"module": "ESNext",
 
 		// The types defined in "vite/client" are included in global scope.
-		"types": ["vite/client"],
+		"types": ["vite/client", "node"],
 
 		// Do not emit compiled output files, vite will take care of the that.
 		"noEmit": true,
