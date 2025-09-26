@@ -16,7 +16,7 @@ const basicConfig = defineConfig({
 		dts({
 			rollupTypes: false,
 			strictOutput: true,
-			exclude: ['src/test', '**/*.stories.tsx', '**/*.test.tsx', '**/*.test.ts'],
+			exclude: ['src/testing', '**/*.stories.tsx', '**/*.test.tsx', '**/*.test.ts'],
 		}),
 		cssInjectedByJs({
 			relativeCSSInjection: true,
@@ -57,10 +57,11 @@ const basicConfig = defineConfig({
 const testConfig = testDefineConfig({
 	test: {
 		environment: 'jsdom',
-		setupFiles: 'src/test/setup.ts',
+		setupFiles: 'src/testing/setup.ts',
 		coverage: {
 			all: false,
 			enabled: true,
+			exclude: ['**/index.ts', '**/index.tsx'],
 		},
 	},
 })

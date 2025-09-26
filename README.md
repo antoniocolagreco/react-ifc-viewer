@@ -4,7 +4,7 @@ A React library for interactive visualization of Industry Foundation Classes (IF
 
 ## Overview
 
-React IFC Viewer enables property-based element selection, custom overlays, and interactive events on building models. Built specifically for applications requiring sensor monitoring, equipment tracking, and real-time data visualization through MQTT integration.
+React IFC Viewer enables property-based element selection, custom overlays, and interactive events on building models. Built specifically for applications requiring sensor monitoring, equipment tracking, and real-time data visualization through MQTT integration. Under the hood it now relies on instanced meshes to render repeated geometry efficiently, keeping draw calls low even on large models.
 
 **Built with:** React, Three.js, and Web-IFC.
 
@@ -68,6 +68,7 @@ function App() {
 ### Performance Optimization
 
 - Property scanning with caching
+- Instanced meshes for repeat geometry to minimize draw calls and GPU overhead
 - Shared materials for memory efficiency
 - On-demand rendering during interactions
 
@@ -82,10 +83,15 @@ Main viewer component for rendering IFC models.
 ```jsx
 <IfcViewer
   url="/path/to/model.ifc"
-  enableMeshHover={true}
-  enableMeshSelection={true}
+  enableMeshHover
+  enableMeshSelection
   hoverColor={0x00ff00}
   selectedColor={0xff0000}
+  links={linksBetweenElements}
+  selectable={[{ type: 'IfcSensor' }]}
+  alwaysVisible={[{ type: 'IfcWall' }]}
+  highlightedSelectables={[{ type: 'IfcSensor', properties: [{ name: 'Status', value: 'Alarm' }] }]}
+  showBoundingSphere={false}
   onModelLoaded={(model) => {}}
   onMeshSelect={(element) => {}}
   data={preProcessedData} // Optional: skip initial scan
@@ -93,6 +99,16 @@ Main viewer component for rendering IFC models.
   {/* Child components */}
 </IfcViewer>
 ```
+
+Where `linksBetweenElements` is an array of [`IfcElementLink`](./src/core/types/types.ts) objects produced during preprocessing.
+
+Additional notable props:
+
+- `links`: Couples related elements (e.g., sensors to devices) so they can be resolved quickly at runtime.
+- `selectable`: Declares which elements can be interacted with via hover/click and programmatic selection.
+- `alwaysVisible`: Keeps specific element classes visible in every view mode.
+- `highlightedSelectables`: Visually emphasises selectables that match a given requirement.
+- `showBoundingSphere`: Renders a helper sphere when focusing the camera on a selected element.
 
 #### `<IfcOverlay>`
 
@@ -130,7 +146,7 @@ const {
   viewPort: { focusView, fitView, resetView, changeViewMode, viewMode },
   
   // Loading state
-  loadingProgress: { status, loaded, total, percentage },
+  loadingProgress,
   
   // Model access
   model,
@@ -140,10 +156,18 @@ const {
   selectByProperty,
   selectByExpressId,
   getElementByExpressId,
+  getElementsWithData,
+  renderScene,
+  updateAnchors,
   
   // Utilities
   utilities: { propertiesReader }
 } = useIfcViewer()
+
+const loadingPercentage =
+  loadingProgress.loaded && loadingProgress.total
+    ? Math.round((loadingProgress.loaded / loadingProgress.total) * 100)
+    : 0
 ```
 
 ## Advanced Usage
@@ -153,23 +177,48 @@ const {
 Optimize performance by pre-processing IFC properties:
 
 ```jsx
-const { utilities } = useIfcViewer()
+import { useEffect, useState } from 'react'
+import type { IfcElementData } from 'react-ifc-viewer'
+import { IfcViewer, useIfcViewer } from 'react-ifc-viewer'
 
-// Process and cache properties
-const data = await utilities.propertiesReader.read(ifcBuffer, {
-  requirements: {
-    selectableRequirements: [
-      { type: 'IfcSensor', properties: [{ name: 'Type', value: 'Temperature' }] }
-    ]
-  },
-  keepProperties: false // Reduce memory usage
-})
+function PreprocessedViewer({ src }: { src: string }) {
+  const {
+    utilities: {
+      propertiesReader: { read }
+    }
+  } = useIfcViewer()
 
-// Save for future use
-localStorage.setItem('processedData', JSON.stringify(data))
+  const [data, setData] = useState<IfcElementData[]>()
 
-// Use pre-processed data
-<IfcViewer data={data} url="/model.ifc" />
+  useEffect(() => {
+    const preprocess = async () => {
+      const response = await fetch(src)
+      const buffer = new Uint8Array(await response.arrayBuffer())
+
+      const processed = await read(buffer, {
+        requirements: {
+          selectableRequirements: [
+            { type: 'IfcSensor', properties: [{ name: 'Type', value: 'Temperature' }] }
+          ],
+          alwaysVisibleRequirements: [{ type: 'IfcWall' }]
+        },
+        keepProperties: false,
+        wasmPath: { path: '/wasm/', absolute: false }
+      })
+
+      localStorage.setItem('processedData', JSON.stringify(processed))
+      setData(processed)
+    }
+
+    void preprocess()
+  }, [read, src])
+
+  if (!data) {
+    return null
+  }
+
+  return <IfcViewer url={src} data={data} />
+}
 ```
 
 ### Real-time Integration Pattern
@@ -177,35 +226,50 @@ localStorage.setItem('processedData', JSON.stringify(data))
 Example MQTT integration for alarm monitoring:
 
 ```jsx
-function AlarmSystem() {
+import { useEffect, useMemo, useState } from 'react'
+import mqtt from 'mqtt'
+import { IfcGreenMarker, IfcOverlay, IfcRedMarker, IfcViewer, useIfcViewer } from 'react-ifc-viewer'
+
+function AlarmSystemViewer() {
   const { selectByProperty } = useIfcViewer()
-  const [alarms, setAlarms] = useState(new Set())
+  const [alarms, setAlarms] = useState<Set<string>>(new Set())
+
+  const decoder = useMemo(() => new TextDecoder(), [])
 
   useEffect(() => {
-    const client = mqtt.connect('mqtt://broker.com')
-    
-    client.on('message', (topic, message) => {
-      const alarm = JSON.parse(message.toString())
-      
+    const client = mqtt.connect('wss://broker.example.com')
+
+    const handleMessage = (_topic: string, payload: Uint8Array) => {
+      const alarm = JSON.parse(decoder.decode(payload))
+
       if (alarm.status === 'ACTIVE') {
         setAlarms(prev => new Set([...prev, alarm.elementId]))
         selectByProperty({ name: 'ElementID', value: alarm.elementId })
-      } else {
-        setAlarms(prev => { prev.delete(alarm.elementId); return new Set(prev) })
+        return
       }
-    })
-    
-    return () => client.end()
-  }, [])
+
+      setAlarms(prev => {
+        const next = new Set(prev)
+        next.delete(alarm.elementId)
+        return next
+      })
+    }
+
+    client.subscribe('alarms')
+    client.on('message', handleMessage)
+
+    return () => {
+      client.off('message', handleMessage)
+      client.end(true)
+    }
+  }, [decoder, selectByProperty])
 
   return (
     <IfcViewer url="/building.ifc">
-      {/* Normal elements */}
       <IfcOverlay requirements={{ type: 'IfcSensor' }}>
         <IfcGreenMarker />
       </IfcOverlay>
-      
-      {/* Alarm elements */}
+
       {Array.from(alarms).map(id => (
         <IfcOverlay
           key={id}
@@ -221,24 +285,28 @@ function AlarmSystem() {
 
 ## Requirements & Limitations
 
-### Browser Support
-
-- WebGL 2.0 support required
-- Modern browsers with Web Workers
-- ES2020+ JavaScript features
-
 ### Performance Notes
 
 - Property scanning can be slow for large models - use pre-processing
 - Materials are shared between meshes for efficiency
-- Scene renders only during user interactions
+- Scene renders only during user interactions (overlays always rerender as they are React components)
+
+### Performance TODOs
+
+1. Move canvas sizing out of the main render loop: rely on the resize observer to call `renderer.setSize` and update the camera aspect only when dimensions actually change.
+2. Precompute the array of instanced meshes so raycasting no longer scans every child of the scene graph on each hover/select event.
+3. Memoize overlay anchor projections and refresh them through a single animation frame scheduler, so repeated calls to `transformViewportPositionToScreenPosition` are limited to nodes that actually moved.
+4. Run IFC property processing inside a Web Worker to keep the main thread responsive while heavy parsing or `processIfcData` loops are underway.
+5. Skip hover raycasts when the pointer displacement is below a small threshold and shorten the `renderingEnabledRef` timeout to avoid keeping the render loop hot unnecessarily.
+6. Batch progress updates in the IFC reader (e.g., update React state every N elements or with `requestIdleCallback`) to lower reconciliation overhead during long scans.
+7. Reuse shared Three.js math objects instead of allocating new `Vector3`/`Matrix4` instances inside tight loops to reduce garbage collection spikes.
 
 ### Current Status
 
 ⚠️ **This library is in active development and not recommended for production use.**
 
 - Limited test coverage
-- Instanced meshes not yet implemented
+- Instanced mesh performance tuning is ongoing
 - API may change between versions
 
 ## Development
