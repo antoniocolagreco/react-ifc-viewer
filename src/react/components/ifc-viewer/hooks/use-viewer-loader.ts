@@ -85,7 +85,7 @@ const useViewerLoader = ({
 			}
 
 			return await new Promise<IfcElementData[]>((resolve, reject) => {
-					const worker = new Worker(PROCESS_IFC_DATA_WORKER_URL, { type: 'module' })
+				const worker = new Worker(PROCESS_IFC_DATA_WORKER_URL, { type: 'module' })
 
 				const cleanup = () => {
 					worker.removeEventListener('message', handleMessage)
