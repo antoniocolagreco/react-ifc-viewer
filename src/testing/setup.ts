@@ -95,16 +95,6 @@ Object.defineProperty(globalThis.URL, 'revokeObjectURL', {
 	value: vi.fn(),
 })
 
-// Mock Worker
-Object.defineProperty(globalThis, 'Worker', {
-	value: vi.fn().mockImplementation(() => ({
-		postMessage: vi.fn(),
-		terminate: vi.fn(),
-		addEventListener: vi.fn(),
-		removeEventListener: vi.fn(),
-	})),
-})
-
 afterEach(() => {
 	cleanup()
 })

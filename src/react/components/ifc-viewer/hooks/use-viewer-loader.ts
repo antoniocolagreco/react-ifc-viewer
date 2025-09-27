@@ -1,7 +1,6 @@
 import { useCallback } from 'react'
 import type { IfcModel } from '@/core/models'
 import type { IfcElementData, IfcElementLink, Requirements, SelectableRequirements } from '@/core/types'
-import type { ProcessIfcDataRequest, ProcessIfcDataWorkerMessage } from '@/core/workers/types'
 import {
 	alignObject,
 	fetchFile,
@@ -10,7 +9,6 @@ import {
 	restoreDataToIfcModelFromProperties,
 	restoreDataToIfcModelFromRecord,
 } from '@/core/utils'
-import processIfcDataWorkerUrl from '@/core/workers/process-ifc-data.worker?worker&url'
 import { processIfcData } from '@/core/utils'
 import type { IfcLoadingStatus, RenderScene, ViewerRefs } from '../types'
 
@@ -31,8 +29,6 @@ type UseViewerLoaderParams = {
 type ViewerLoaderApi = {
 	loadFile: () => Promise<void>
 }
-
-const PROCESS_IFC_DATA_WORKER_URL = new URL(processIfcDataWorkerUrl, import.meta.url).href
 
 const useViewerLoader = ({
 	refs,
@@ -57,71 +53,22 @@ const useViewerLoader = ({
 		refs.raycastTargetsRef.current = model.getAllMeshes().filter(mesh => mesh.count > 0)
 	}, [refs])
 
-	// Prefer a worker so heavy property processing stays off the main thread, but gracefully fallback when unavailable.
-	const processDataInWorker = useCallback(
-		async (elements: IfcElementData[]): Promise<IfcElementData[]> => {
-			if (typeof window === 'undefined' || typeof Worker === 'undefined') {
-				const total = elements.length
-				for (let index = 0; index < total; index += 1) {
-					const element = elements[index]
-					if (!element) {
-						continue
-					}
-					processIfcData(
-						element,
-						elements,
-						linksRequirements,
-						selectableRequirements,
-						alwaysVisibleRequirements,
-					)
-					const processed = index + 1
-					if (processed % 50 === 0 || processed === total) {
-						setLoadingProgress({ status: 'PROCESSING', loaded: processed, total })
-					}
+	// Process properties synchronously to keep logic simple and avoid worker deployment issues.
+	const processData = useCallback(
+		(elements: IfcElementData[]): IfcElementData[] => {
+			const total = elements.length
+			for (let index = 0; index < total; index += 1) {
+				const element = elements[index]
+				if (!element) {
+					continue
 				}
-				return elements
+				processIfcData(element, elements, linksRequirements, selectableRequirements, alwaysVisibleRequirements)
+				const processed = index + 1
+				if (processed % 50 === 0 || processed === total) {
+					setLoadingProgress({ status: 'PROCESSING', loaded: processed, total })
+				}
 			}
-
-			return await new Promise<IfcElementData[]>((resolve, reject) => {
-				const worker = new Worker(PROCESS_IFC_DATA_WORKER_URL, { type: 'module' })
-
-				const cleanup = () => {
-					worker.removeEventListener('message', handleMessage)
-					worker.removeEventListener('error', handleError)
-					worker.terminate()
-				}
-
-				const handleMessage = (event: MessageEvent<ProcessIfcDataWorkerMessage>) => {
-					const message = event.data
-					if (message.type === 'progress') {
-						setLoadingProgress({ status: 'PROCESSING', loaded: message.processed, total: message.total })
-						return
-					}
-					if (message.type === 'result') {
-						cleanup()
-						resolve(message.elements)
-						return
-					}
-					cleanup()
-					reject(new Error(message.message))
-				}
-
-				const handleError = (event: ErrorEvent) => {
-					cleanup()
-					reject(event.error instanceof Error ? event.error : new Error(event.message))
-				}
-
-				worker.addEventListener('message', handleMessage)
-				worker.addEventListener('error', handleError)
-
-				const request: ProcessIfcDataRequest = {
-					elements,
-					linkRequirements: linksRequirements,
-					selectableRequirements,
-					alwaysVisibleRequirements,
-				}
-				worker.postMessage(request)
-			})
+			return elements
 		},
 		[alwaysVisibleRequirements, linksRequirements, selectableRequirements, setLoadingProgress],
 	)
@@ -204,12 +151,7 @@ const useViewerLoader = ({
 
 			if (modelData.length > 0) {
 				setLoadingProgress({ status: 'PROCESSING', loaded: 0, total: modelData.length })
-				try {
-					modelData = await processDataInWorker(modelData)
-				} catch (error) {
-					setLoadingProgress({ status: 'ERROR_PROCESSING' })
-					throw error
-				}
+				modelData = processData(modelData)
 			}
 			setLoadingProgress({ status: 'SETTING_DATA' })
 			restoreDataToIfcModelFromProperties(model, modelData)
@@ -223,7 +165,7 @@ const useViewerLoader = ({
 		setLoadingProgress({ status: 'DONE' })
 	}, [
 		data,
-		processDataInWorker,
+		processData,
 		onModelLoaded,
 		refreshRaycastTargets,
 		refs,
