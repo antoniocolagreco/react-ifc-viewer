@@ -1,5 +1,10 @@
 # React IFC Viewer
 
+[![npm version](https://badge.fury.io/js/react-ifc-viewer.svg?v2)](https://badge.fury.io/js/react-ifc-viewer)
+[![npm downloads](https://img.shields.io/npm/dm/react-ifc-viewer.svg)](https://www.npmjs.com/package/react-ifc-viewer)
+[![TypeScript](https://img.shields.io/badge/%3C%2F%3E-TypeScript-%230074c1.svg)](http://www.typescriptlang.org/)
+[![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/antoniocolagreco/react-ifc-viewer/blob/master/LICENSE.md)
+
 A React library for interactive visualization of Industry Foundation Classes (IFC) models with real-time data integration support.
 
 ## Overview
@@ -12,6 +17,14 @@ React IFC Viewer enables property-based element selection, custom overlays, and 
 
 ```bash
 npm install react-ifc-viewer
+```
+
+```bash
+yarn add react-ifc-viewer
+```
+
+```bash
+pnpm add react-ifc-viewer
 ```
 
 **Prerequisites:**
@@ -295,9 +308,13 @@ function AlarmSystemViewer() {
 
 ⚠️ **This library is in active development and not recommended for production use.**
 
-- Limited test coverage
+- Limited test coverage  
 - Instanced mesh performance tuning is ongoing
 - API may change between versions
+
+### Keywords
+
+IFC, BIM, React, Three.js, 3D, visualization, building, construction, WebGL, TypeScript
 
 ## Development
 
@@ -320,8 +337,11 @@ pnpm build:storybook
 
 ## License
 
-MIT License - see LICENSE file for details.
+MIT License - see [LICENSE](LICENSE.md) file for details.
 
-## Contributing
+## Links
 
-Contributions, issues, and feature requests are welcome. Please check the GitHub repository for the latest updates and contribution guidelines.
+- [📦 npm package](https://www.npmjs.com/package/react-ifc-viewer)
+- [📖 Documentation](https://github.com/antoniocolagreco/react-ifc-viewer#readme)
+- [🐛 Bug Reports](https://github.com/antoniocolagreco/react-ifc-viewer/issues)
+- [💡 Feature Requests](https://github.com/antoniocolagreco/react-ifc-viewer/issues)
