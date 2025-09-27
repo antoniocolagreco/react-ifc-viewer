@@ -10,6 +10,7 @@ import {
 	restoreDataToIfcModelFromProperties,
 	restoreDataToIfcModelFromRecord,
 } from '@/core/utils'
+import processIfcDataWorkerUrl from '@/core/workers/process-ifc-data.worker?worker&url'
 import { processIfcData } from '@/core/utils'
 import type { IfcLoadingStatus, RenderScene, ViewerRefs } from '../types'
 
@@ -31,10 +32,7 @@ type ViewerLoaderApi = {
 	loadFile: () => Promise<void>
 }
 
-const PROCESS_IFC_DATA_WORKER_URL = new URL(
-	'../../../../core/workers/process-ifc-data.worker.ts?worker',
-	import.meta.url,
-)
+const PROCESS_IFC_DATA_WORKER_URL = new URL(processIfcDataWorkerUrl, import.meta.url).href
 
 const useViewerLoader = ({
 	refs,

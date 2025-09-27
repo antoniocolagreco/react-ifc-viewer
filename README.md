@@ -291,16 +291,6 @@ function AlarmSystemViewer() {
 - Materials are shared between meshes for efficiency
 - Scene renders only during user interactions (overlays always rerender as they are React components)
 
-### Performance TODOs
-
-- [x] Move canvas sizing out of the main render loop: rely on the resize observer to call `renderer.setSize` and update the camera aspect only when dimensions actually change.
-- [x] Precompute the array of instanced meshes so raycasting no longer scans every child of the scene graph on each hover/select event.
-- [x] Memoize overlay anchor projections and refresh them through a single animation frame scheduler, so repeated calls to `transformViewportPositionToScreenPosition` are limited to nodes that actually moved.
-- [x] Run IFC property processing inside a Web Worker to keep the main thread responsive while heavy parsing or `processIfcData` loops are underway.
-- [x] Skip hover raycasts when the pointer displacement is below a small threshold and shorten the `renderingEnabledRef` timeout to avoid keeping the render loop hot unnecessarily.
-- [x] Batch progress updates in the IFC reader (e.g., update React state every N elements or with `requestIdleCallback`) to lower reconciliation overhead during long scans.
-- [x] Reuse shared Three.js math objects instead of allocating new `Vector3`/`Matrix4` instances inside tight loops to reduce garbage collection spikes.
-
 ### Current Status
 
 ⚠️ **This library is in active development and not recommended for production use.**
