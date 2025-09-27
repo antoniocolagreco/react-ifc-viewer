@@ -31,6 +31,11 @@ type ViewerLoaderApi = {
 	loadFile: () => Promise<void>
 }
 
+const PROCESS_IFC_DATA_WORKER_URL = new URL(
+	'../../../../core/workers/process-ifc-data.worker.ts?worker',
+	import.meta.url,
+)
+
 const useViewerLoader = ({
 	refs,
 	url,
@@ -80,10 +85,7 @@ const useViewerLoader = ({
 			}
 
 			return await new Promise<IfcElementData[]>((resolve, reject) => {
-				const worker = new Worker(
-					new URL('../../../../core/workers/process-ifc-data.worker.ts', import.meta.url),
-					{ type: 'module' },
-				)
+					const worker = new Worker(PROCESS_IFC_DATA_WORKER_URL, { type: 'module' })
 
 				const cleanup = () => {
 					worker.removeEventListener('message', handleMessage)
