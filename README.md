@@ -1,6 +1,6 @@
 # React IFC Viewer
 
-[![npm version](https://badge.fury.io/js/react-ifc-viewer.svg?v2)](https://badge.fury.io/js/react-ifc-viewer)
+[![npm version](https://img.shields.io/npm/v/react-ifc-viewer.svg)](https://img.shields.io/npm/v/react-ifc-viewer.svg)
 [![npm downloads](https://img.shields.io/npm/dm/react-ifc-viewer.svg)](https://www.npmjs.com/package/react-ifc-viewer)
 [![TypeScript](https://img.shields.io/badge/%3C%2F%3E-TypeScript-%230074c1.svg)](http://www.typescriptlang.org/)
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/antoniocolagreco/react-ifc-viewer/blob/master/LICENSE.md)
