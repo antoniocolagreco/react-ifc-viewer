@@ -32,7 +32,7 @@ pnpm add react-ifc-viewer
 - React 19.0.0+
 - Three.js 0.175.0+
 - Web-IFC 0.0.66+
-- Web-IFC WASM files in `public/wasm` directory
+- Web-IFC WASM files in `public/wasm` directory, or in the folder set with the `wasmPath` prop
 
 ## Quick Start
 
@@ -106,7 +106,7 @@ Main viewer component for rendering IFC models.
 	wasmPath={{ path: '/my-app/wasm/', absolute: true }}
 	onModelLoaded={model => {}}
 	onMeshSelect={element => {}}
-	data={preProcessedData} // Optional: skip initial scan
+	data={preProcessedData} // Optional: skip initial scan, accepts the record returned by read() or an IfcElementData array
 >
 	{/* Child components */}
 </IfcViewer>
@@ -299,7 +299,7 @@ function AlarmSystemViewer() {
 
 ### Performance Notes
 
-- Property scanning can be slow for large models - use pre-processing
+- Property scanning runs on every load - pass pre-processed `data` to skip it
 - Materials are shared between meshes for efficiency
 - Scene renders only during user interactions (overlays always rerender as they are React components)
 
