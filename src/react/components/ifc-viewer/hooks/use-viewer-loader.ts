@@ -11,6 +11,7 @@ import {
 	restoreDataToIfcModelFromProperties,
 	restoreDataToIfcModelFromRecord,
 	type IfcElementDataRecord,
+	type WasmPathType,
 } from '@/core/utils'
 import type { IfcLoadingStatus, RenderScene, ViewerRefs } from '../types'
 
@@ -21,6 +22,7 @@ type UseViewerLoaderParams = {
 	alwaysVisibleRequirements?: Requirements[]
 	selectableRequirements?: SelectableRequirements[]
 	linksRequirements?: IfcElementLink[]
+	wasmPath?: WasmPathType
 	onModelLoaded?: (model: IfcModel) => void
 	renderScene: RenderScene
 	resetScene: () => void
@@ -40,6 +42,7 @@ const useViewerLoader = ({
 	alwaysVisibleRequirements,
 	selectableRequirements,
 	linksRequirements,
+	wasmPath,
 	onModelLoaded,
 	renderScene,
 	resetScene,
@@ -133,6 +136,7 @@ const useViewerLoader = ({
 				setProgress({ status: 'ERROR_LOADING_MESHES' })
 				throw error
 			},
+			{ wasmPath },
 		)
 
 		if (!isCurrentLoad()) {
@@ -165,7 +169,7 @@ const useViewerLoader = ({
 					setProgress({ status: 'ERROR_LOADING_PROPERTIES' })
 					throw error
 				},
-				{ expressIds: model.getElements().map(ifcElement => ifcElement.userData.expressId) },
+				{ wasmPath, expressIds: model.getElements().map(ifcElement => ifcElement.userData.expressId) },
 			)
 
 			if (!isCurrentLoad()) {
@@ -198,6 +202,7 @@ const useViewerLoader = ({
 		selectableRequirements,
 		setLoadingProgress,
 		url,
+		wasmPath,
 	])
 
 	return { loadFile, cancelLoading }

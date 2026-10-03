@@ -12,6 +12,7 @@ const IfcViewer = forwardRef<HTMLDivElement, IfcViewerProps>((props, forwardedRe
 	const {
 		url,
 		data,
+		wasmPath,
 		onModelLoaded,
 		hoverColor,
 		selectedColor,
@@ -34,6 +35,7 @@ const IfcViewer = forwardRef<HTMLDivElement, IfcViewerProps>((props, forwardedRe
 	const controller = useIfcViewerController({
 		url,
 		data,
+		wasmPath,
 		onModelLoaded,
 		hoverColor,
 		selectedColor,

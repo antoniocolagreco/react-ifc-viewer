@@ -102,8 +102,8 @@ Main viewer component for rendering IFC models.
 	links={linksBetweenElements}
 	selectable={[{ type: 'IfcSensor' }]}
 	alwaysVisible={[{ type: 'IfcWall' }]}
-	highlightedSelectables={[{ type: 'IfcSensor', properties: [{ name: 'Status', value: 'Alarm' }] }]}
 	showBoundingSphere={false}
+	wasmPath={{ path: '/my-app/wasm/', absolute: true }}
 	onModelLoaded={model => {}}
 	onMeshSelect={element => {}}
 	data={preProcessedData} // Optional: skip initial scan
@@ -119,8 +119,8 @@ Additional notable props:
 - `links`: Couples related elements (e.g., sensors to devices) so they can be resolved quickly at runtime.
 - `selectable`: Declares which elements can be interacted with via hover/click and programmatic selection. When omitted, every element is selectable.
 - `alwaysVisible`: Keeps specific element classes visible in every view mode.
-- `highlightedSelectables`: Visually emphasises selectables that match a given requirement.
 - `showBoundingSphere`: Renders a helper sphere when focusing the camera on a selected element.
+- `wasmPath`: Folder containing the Web-IFC WASM files. Defaults to `/wasm/` at the domain root; set it when the app is served from a sub-path.
 
 #### `<IfcOverlay>`
 
@@ -215,7 +215,7 @@ function PreprocessedViewer({ src }: { src: string }) {
           alwaysVisibleRequirements: [{ type: 'IfcWall' }]
         },
         keepProperties: false,
-        wasmPath: { path: '/wasm/', absolute: false }
+        wasmPath: { path: '/wasm/', absolute: true }
       })
 
       localStorage.setItem('processedData', JSON.stringify(processed))

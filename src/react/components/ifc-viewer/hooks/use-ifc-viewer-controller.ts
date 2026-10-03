@@ -39,6 +39,7 @@ const useIfcViewerController = (props: IfcViewerProps): UseIfcViewerControllerRe
 	const {
 		url,
 		data,
+		wasmPath,
 		hoverColor,
 		selectedColor,
 		onModelLoaded,
@@ -119,6 +120,7 @@ const useIfcViewerController = (props: IfcViewerProps): UseIfcViewerControllerRe
 		alwaysVisibleRequirements,
 		selectableRequirements,
 		linksRequirements: linkRequirements,
+		wasmPath,
 		onModelLoaded,
 		renderScene,
 		resetScene,
