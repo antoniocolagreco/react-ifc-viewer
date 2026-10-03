@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 const utilsMocks = vi.hoisted(() => ({
 	fetchFile: vi.fn(),
@@ -21,7 +21,8 @@ import { useViewerLoader } from './use-viewer-loader'
 import { useViewerRefs } from './use-viewer-refs'
 
 describe('useViewerLoader', () => {
-	it('passes the wasm path to the model and properties loaders', async () => {
+	beforeEach(() => {
+		vi.clearAllMocks()
 		utilsMocks.fetchFile.mockImplementation((_url: string, onLoad: (buffer: Uint8Array) => void) => {
 			onLoad(new Uint8Array([1]))
 			return Promise.resolve()
@@ -38,6 +39,13 @@ describe('useViewerLoader', () => {
 				return Promise.resolve()
 			},
 		)
+	})
+
+	afterEach(() => {
+		vi.unstubAllGlobals()
+	})
+
+	it('passes the wasm path to the model and properties loaders', async () => {
 		const wasmPath: WasmPathType = { path: '/my-app/wasm/', absolute: true }
 
 		const { result } = renderHook(() =>
@@ -66,5 +74,37 @@ describe('useViewerLoader', () => {
 			expect.any(Function),
 			{ wasmPath, expressIds: [5] },
 		)
+	})
+
+	it('waits for a frame showing the model before loading the properties', async () => {
+		const frameCallbacks: FrameRequestCallback[] = []
+		vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
+			frameCallbacks.push(callback)
+			return frameCallbacks.length
+		})
+		const renderScene = vi.fn()
+
+		const { result } = renderHook(() =>
+			useViewerLoader({
+				refs: useViewerRefs(),
+				url: '/model.ifc',
+				renderScene,
+				resetScene: vi.fn(),
+				resetView: vi.fn(),
+				setLoadingProgress: vi.fn(),
+			}),
+		)
+
+		const loading = result.current.loadFile()
+		await vi.waitFor(() => {
+			expect(frameCallbacks).toHaveLength(1)
+		})
+		expect(renderScene).toHaveBeenCalled()
+		expect(utilsMocks.loadIfcProperties).not.toHaveBeenCalled()
+
+		frameCallbacks[0]?.(performance.now())
+
+		await expect(loading).resolves.toBe(true)
+		expect(utilsMocks.loadIfcProperties).toHaveBeenCalledTimes(1)
 	})
 })

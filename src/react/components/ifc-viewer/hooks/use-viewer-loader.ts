@@ -35,6 +35,13 @@ type ViewerLoaderApi = {
 	cancelLoading: () => void
 }
 
+const waitForNextPaint = (): Promise<void> =>
+	new Promise(resolve => {
+		requestAnimationFrame(() => {
+			setTimeout(resolve, 0)
+		})
+	})
+
 const useViewerLoader = ({
 	refs,
 	url,
@@ -151,6 +158,13 @@ const useViewerLoader = ({
 			restoreDataToIfcModelFromRecord(model, data)
 			refreshRaycastTargets()
 		} else {
+			setProgress({ status: 'LOADING_PROPERTIES' })
+			await waitForNextPaint()
+
+			if (!isCurrentLoad()) {
+				return false
+			}
+
 			let modelData: IfcElementData[] = []
 
 			await loadIfcProperties(
