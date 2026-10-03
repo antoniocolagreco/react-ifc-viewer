@@ -36,6 +36,7 @@ class IfcModel extends Group {
 	private readonly elementsGroup: Group = new Group()
 	private readonly meshesGroup: Group = new Group()
 	private readonly ifcElements: IfcElement[] = []
+	private readonly ifcElementsByExpressId: Map<number, IfcElement> = new Map()
 
 	private instancedMeshes: Map<string, IfcMesh> = new Map()
 	private instanceLookup: Map<string, IfcInstanceRecord> = new Map()
@@ -160,7 +161,7 @@ class IfcModel extends Group {
 	}
 
 	getIfcElement = (expressId: number): IfcElement | undefined => {
-		return this.ifcElements.find(ifcElement => ifcElement.userData.expressId === expressId)
+		return this.ifcElementsByExpressId.get(expressId)
 	}
 
 	getAllSeletableElements = (): IfcElement[] => {
@@ -191,6 +192,9 @@ class IfcModel extends Group {
 		for (const object of objects) {
 			if (object instanceof IfcElement) {
 				this.ifcElements.push(object)
+				if (!this.ifcElementsByExpressId.has(object.userData.expressId)) {
+					this.ifcElementsByExpressId.set(object.userData.expressId, object)
+				}
 				this.elementsGroup.add(object)
 				continue
 			}

@@ -1,4 +1,4 @@
-import { BufferGeometry, Mesh, type MeshLambertMaterial, type Object3D } from 'three'
+import { BufferGeometry, InstancedMesh, Mesh, type MeshLambertMaterial, type Object3D } from 'three'
 
 /**
  * Disposes of a given MeshLambertMaterial and its associated maps to free up memory.
@@ -30,6 +30,10 @@ const disposeMaterial = (material: MeshLambertMaterial): void => {
  */
 const disposeObjects = (object3D: Object3D | undefined): void => {
 	if (!object3D) return
+
+	if (object3D instanceof InstancedMesh) {
+		object3D.dispose()
+	}
 
 	if (object3D instanceof Mesh) {
 		if (object3D.geometry instanceof BufferGeometry) {

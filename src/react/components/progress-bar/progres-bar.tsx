@@ -30,7 +30,10 @@ const ProgressBar: FC<ProgressProps> = props => {
 		...rest
 	} = props
 
-	const percentage = max && value ? Math.round((100 / max) * value) : 100
+	const percentage =
+		max !== undefined && max > 0 && value !== undefined
+			? Math.min(100, Math.max(0, Math.round((100 / max) * value)))
+			: 100
 
 	const progressBarStyle: CSSProperties = {
 		width: `${percentage.toString()}%`,

@@ -33,9 +33,16 @@ const extractDataToSave = (ifcElementsData: IfcElementData[], keepProperties = f
  *
  * @param ifcModel - The IFC model whose elements' data will be restored.
  * @param savedData - A record containing the saved data for the IFC elements,
- *                    keyed by their expressId.
+ *                    keyed by their expressId, or an array of IFC element data.
  */
-const restoreDataToIfcModelFromRecord = (ifcModel: IfcModel, savedData: IfcElementDataRecord): void => {
+const restoreDataToIfcModelFromRecord = (
+	ifcModel: IfcModel,
+	savedData: IfcElementDataRecord | IfcElementData[],
+): void => {
+	if (Array.isArray(savedData)) {
+		restoreDataToIfcModelFromProperties(ifcModel, savedData)
+		return
+	}
 	for (const ifcElement of ifcModel.getElements()) {
 		const data = savedData[ifcElement.userData.expressId]
 		if (!data) {
@@ -56,8 +63,14 @@ const restoreDataToIfcModelFromRecord = (ifcModel: IfcModel, savedData: IfcEleme
  * @param ifcElementsData - An array of IFC element data objects to restore into the model.
  */
 const restoreDataToIfcModelFromProperties = (ifcModel: IfcModel, ifcElementsData: IfcElementData[]): void => {
+	const ifcElementsDataByExpressId = new Map<number, IfcElementData>()
+	for (const ifcElementData of ifcElementsData) {
+		if (!ifcElementsDataByExpressId.has(ifcElementData.expressId)) {
+			ifcElementsDataByExpressId.set(ifcElementData.expressId, ifcElementData)
+		}
+	}
 	for (const ifcElement of ifcModel.getElements()) {
-		const data = ifcElementsData.find(data => data.expressId === ifcElement.userData.expressId)
+		const data = ifcElementsDataByExpressId.get(ifcElement.userData.expressId)
 		if (!data) {
 			continue
 		}
@@ -65,4 +78,9 @@ const restoreDataToIfcModelFromProperties = (ifcModel: IfcModel, ifcElementsData
 	}
 }
 
-export { extractDataToSave, restoreDataToIfcModelFromProperties, restoreDataToIfcModelFromRecord }
+export {
+	extractDataToSave,
+	restoreDataToIfcModelFromProperties,
+	restoreDataToIfcModelFromRecord,
+	type IfcElementDataRecord,
+}

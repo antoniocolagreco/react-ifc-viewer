@@ -3,6 +3,7 @@
 import {
 	useCallback,
 	useEffect,
+	useRef,
 	useState,
 	type CSSProperties,
 	type MouseEvent,
@@ -111,7 +112,7 @@ const useIfcViewerController = (props: IfcViewerProps): UseIfcViewerControllerRe
 		hover,
 	})
 
-	const { loadFile } = useViewerLoader({
+	const { loadFile, cancelLoading } = useViewerLoader({
 		refs,
 		url,
 		data,
@@ -191,33 +192,53 @@ const useIfcViewerController = (props: IfcViewerProps): UseIfcViewerControllerRe
 		updateGlobalState()
 	}, [updateGlobalState])
 
+	const latestCallbacksRef = useRef({
+		renderScene,
+		updateAnchors,
+		scheduleAnchorsUpdate,
+		processChildren,
+		updateAllMeshesDisplay,
+	})
+
+	useEffect(() => {
+		latestCallbacksRef.current = {
+			renderScene,
+			updateAnchors,
+			scheduleAnchorsUpdate,
+			processChildren,
+			updateAllMeshesDisplay,
+		}
+	})
+
 	useEffect(() => {
 		if (!isRunningInBrowser()) {
 			return
 		}
 
+		const latestCallbacks = latestCallbacksRef
+
 		initializeScene({
 			onResize: () => {
-				renderScene()
-				updateAnchors()
+				latestCallbacks.current.renderScene()
+				latestCallbacks.current.updateAnchors()
 			},
 			onFrame: () => {
-				renderScene()
+				latestCallbacks.current.renderScene()
 			},
 			onControlsStart: () => {
-				renderScene({ updateControls: false })
-				updateAnchors()
+				latestCallbacks.current.renderScene({ updateControls: false })
+				latestCallbacks.current.updateAnchors()
 			},
 			onControlsChange: () => {
-				renderScene({ updateControls: false })
-				scheduleAnchorsUpdate()
+				latestCallbacks.current.renderScene({ updateControls: false })
+				latestCallbacks.current.scheduleAnchorsUpdate()
 			},
 			onControlsEnd: () => {
-				renderScene({ updateControls: false })
-				updateAnchors()
+				latestCallbacks.current.renderScene({ updateControls: false })
+				latestCallbacks.current.updateAnchors()
 			},
 		})
-	}, [initializeScene, renderScene, scheduleAnchorsUpdate, updateAnchors])
+	}, [initializeScene])
 
 	const currentLoadedUrlRef = refs.currentLoadedUrlRef
 
@@ -226,25 +247,36 @@ const useIfcViewerController = (props: IfcViewerProps): UseIfcViewerControllerRe
 			return
 		}
 
-		const hydrateAnchors = () => {
-			processChildren()
-			updateAnchors()
-		}
-
 		if (currentLoadedUrlRef.current !== url) {
 			currentLoadedUrlRef.current = url
-			void loadFile().then(hydrateAnchors)
+			const latestCallbacks = latestCallbacksRef
+			loadFile()
+				.then(loaded => {
+					if (!loaded) {
+						return
+					}
+					latestCallbacks.current.updateAllMeshesDisplay()
+					latestCallbacks.current.processChildren()
+					latestCallbacks.current.updateAnchors()
+					latestCallbacks.current.renderScene()
+				})
+				.catch((error: unknown) => {
+					console.error(error)
+				})
 			return
 		}
 
-		hydrateAnchors()
+		processChildren()
+		updateAnchors()
 	}, [currentLoadedUrlRef, loadFile, processChildren, updateAnchors, url])
 
 	useEffect(() => {
 		return () => {
+			cancelLoading()
 			disposeScene()
+			currentLoadedUrlRef.current = ''
 		}
-	}, [disposeScene])
+	}, [cancelLoading, currentLoadedUrlRef, disposeScene])
 
 	return {
 		containerRef: refs.containerRef,

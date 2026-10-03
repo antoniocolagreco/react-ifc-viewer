@@ -11,6 +11,7 @@ import type {
 } from '@/core/types'
 import {
 	IFC2X3,
+	IFCPROPERTYSET,
 	IFCRELAGGREGATES,
 	IFCRELASSIGNS,
 	IFCRELDEFINESBYPROPERTIES,
@@ -18,6 +19,53 @@ import {
 	type Handle,
 	type IfcAPI,
 } from 'web-ifc'
+
+type PropertySetsIndex = Map<number, PropertySet[]>
+
+const readPropertySet = (ifcAPI: IfcAPI, modelID: number, expressId: number): PropertySet | undefined => {
+	const propertySetLine = ifcAPI.GetLine(modelID, expressId, true) as IFC2X3.IfcPropertySet
+	if (propertySetLine.type !== IFCPROPERTYSET) {
+		return undefined
+	}
+	const properties = propertySetLine.HasProperties.map(prop => {
+		const propertySingleValue = prop as IFC2X3.IfcPropertySingleValue
+		return {
+			name: propertySingleValue.Name.value,
+			value: propertySingleValue.NominalValue?.value as PropertyValue | undefined,
+		}
+	})
+	return { name: propertySetLine.Name?.value, properties }
+}
+
+const buildPropertySetsIndex = (ifcAPI: IfcAPI, modelID: number): PropertySetsIndex => {
+	const index: PropertySetsIndex = new Map()
+	const propertySetsCache = new Map<number, PropertySet | undefined>()
+	const relationIds = ifcAPI.GetLineIDsWithType(modelID, IFCRELDEFINESBYPROPERTIES)
+
+	for (let relationIndex = 0; relationIndex < relationIds.size(); relationIndex++) {
+		const relation = ifcAPI.GetLine(modelID, relationIds.get(relationIndex)) as IFC2X3.IfcRelDefinesByProperties
+		const propertySetId = (relation.RelatingPropertyDefinition as Handle<IFC2X3.IfcPropertySet>).value
+
+		if (!propertySetsCache.has(propertySetId)) {
+			propertySetsCache.set(propertySetId, readPropertySet(ifcAPI, modelID, propertySetId))
+		}
+		const propertySet = propertySetsCache.get(propertySetId)
+		if (!propertySet) {
+			continue
+		}
+
+		for (const relatedObject of relation.RelatedObjects as Handle<IFC2X3.IfcObject>[]) {
+			const elementPropertySets = index.get(relatedObject.value)
+			if (elementPropertySets) {
+				elementPropertySets.push(propertySet)
+			} else {
+				index.set(relatedObject.value, [propertySet])
+			}
+		}
+	}
+
+	return index
+}
 
 /**
  * Retrieves the type and properties of an IFC element.
@@ -39,7 +87,23 @@ import {
  *
  * The resulting object includes the express ID, type, name, and an array of property sets.
  */
-const getIfcElementTypeAndProperties = (ifcAPI: IfcAPI, modelID: number, expressId: number): IfcElementData => {
+const getIfcElementTypeAndProperties = (
+	ifcAPI: IfcAPI,
+	modelID: number,
+	expressId: number,
+	propertySetsIndex?: PropertySetsIndex,
+): IfcElementData => {
+	if (propertySetsIndex) {
+		const line = ifcAPI.GetLine(modelID, expressId) as IFC2X3.IfcBuildingElement
+		return {
+			expressId,
+			type: ifcAPI.GetNameFromTypeCode(line.type),
+			tag: line.Tag ?? undefined,
+			name: line.Name?.value ?? '',
+			properties: propertySetsIndex.get(expressId) ?? [],
+		}
+	}
+
 	const data = ifcAPI.GetLine(modelID, expressId, true, true) as IFC2X3.IfcBuildingElement
 	const type = ifcAPI.GetNameFromTypeCode(data.type)
 	const tag = data.Tag ?? undefined
@@ -68,18 +132,8 @@ const getIfcElementTypeAndProperties = (ifcAPI: IfcAPI, modelID: number, express
 			case IFCRELDEFINESBYPROPERTIES: {
 				const relationDefinesByProperties = relation as IFC2X3.IfcRelDefinesByProperties
 				const handle = relationDefinesByProperties.RelatingPropertyDefinition as Handle<IFC2X3.IfcPropertySet>
-				const propertySetLine = ifcAPI.GetLine(modelID, handle.value, true) as IFC2X3.IfcPropertySet
-
-				if (propertySetLine instanceof IFC2X3.IfcPropertySet) {
-					const properties = propertySetLine.HasProperties.map(prop => {
-						const propertySingleValue = prop as IFC2X3.IfcPropertySingleValue
-						return {
-							name: propertySingleValue.Name.value,
-							value: propertySingleValue.NominalValue?.value as PropertyValue | undefined,
-						}
-					})
-
-					const propertySet = { name: propertySetLine.Name?.value, properties }
+				const propertySet = readPropertySet(ifcAPI, modelID, handle.value)
+				if (propertySet) {
 					propertySets.push(propertySet)
 				}
 				break
@@ -180,8 +234,8 @@ const matchPropertiesAndType = (
 	propertiesToFind: Property[] = [],
 	type?: string,
 ): boolean => {
-	// Controlla se l'oggetto ha delle proprietà utente
-	if (!ifcElementData.properties && !ifcElementData.values) return false
+	// Controlla se l'oggetto ha delle proprietà utente quando ne vengono richieste
+	if (propertiesToFind.length > 0 && !ifcElementData.properties && !ifcElementData.values) return false
 
 	// Controlla se il tipo dell'oggetto corrisponde al tipo specificato (se fornito)
 	if (type && ifcElementData.type !== type) return false
@@ -343,7 +397,12 @@ const filterIfcElementsByPropertiesAndType = (
 ): IfcElement[] => {
 	const foundElements: IfcElement[] = []
 
-	const stack: IfcElement[] = [...ifcModel.getElements()]
+	const elementWithExpressId = expressId ? ifcModel.getIfcElement(expressId) : undefined
+	const stack: IfcElement[] = expressId
+		? elementWithExpressId
+			? [elementWithExpressId]
+			: []
+		: [...ifcModel.getElements()]
 
 	while (stack.length > 0) {
 		const current = stack.pop()
@@ -454,20 +513,13 @@ const setIfcDataItemSelectable = (ifcElementData: IfcElementData, requirements: 
 			break
 		}
 
-		if (!ifcElementData.links) {
+		const elementLinks = ifcElementData.links
+		if (!elementLinks) {
 			continue
 		}
 
-		for (const link of links) {
-			if (
-				!(
-					link in ifcElementData.links ||
-					!ifcElementData.links[link] ||
-					ifcElementData.links[link].length === 0
-				)
-			) {
-				break
-			}
+		if (!links.every(link => (elementLinks[link]?.length ?? 0) > 0)) {
+			continue
 		}
 
 		ifcElementData.selectable = true
@@ -482,15 +534,9 @@ const setIfcDataItemSelectable = (ifcElementData: IfcElementData, requirements: 
  * @param requirements - An array of requirements to be checked against the IFC element data.
  */
 const setIfcDataAlwaysVisible = (ifcElementData: IfcElementData, requirements: Requirements[]): void => {
-	let alwaysVisible = true
-
-	for (const selectableRequirement of requirements) {
-		if (!satisfiesRequirements(ifcElementData, selectableRequirement)) {
-			alwaysVisible = false
-			break
-		}
-	}
-	ifcElementData.alwaysVisible = alwaysVisible
+	ifcElementData.alwaysVisible =
+		requirements.length === 0 ||
+		requirements.some(requirement => satisfiesRequirements(ifcElementData, requirement))
 }
 
 /**
@@ -549,23 +595,93 @@ const setIfcDataLinks = (
 				continue
 			}
 
-			// Initialize links if they do not exist
-			if (!ifcElementData.links) {
-				ifcElementData.links = {}
-			}
-			if (!ifcElementData.links[source.linkName]) {
-				ifcElementData.links[source.linkName] = []
-			}
-			if (!targetIfcElementData.links) {
-				targetIfcElementData.links = {}
-			}
-			if (!targetIfcElementData.links[target.linkName]) {
-				targetIfcElementData.links[target.linkName] = []
-			}
+			linkIfcData(ifcElementData, targetIfcElementData, linkRequirement)
+		}
+	}
+}
 
-			// Add the links
-			ifcElementData.links[source.linkName]?.push(targetIfcElementData.expressId)
-			targetIfcElementData.links[target.linkName]?.push(ifcElementData.expressId)
+const linkIfcData = (
+	sourceIfcElementData: IfcElementData,
+	targetIfcElementData: IfcElementData,
+	{ source, target }: IfcElementLink,
+): void => {
+	sourceIfcElementData.links ??= {}
+	targetIfcElementData.links ??= {}
+	const sourceLinks = (sourceIfcElementData.links[source.linkName] ??= [])
+	const targetLinks = (targetIfcElementData.links[target.linkName] ??= [])
+	sourceLinks.push(targetIfcElementData.expressId)
+	targetLinks.push(sourceIfcElementData.expressId)
+}
+
+const groupLinkTargetsByValue = (
+	allIfcElementsData: IfcElementData[],
+	{ sharedProperty, target }: IfcElementLink,
+): Map<Property['value'], IfcElementData[]> => {
+	const targetsByValue = new Map<Property['value'], IfcElementData[]>()
+	for (const targetIfcElementData of allIfcElementsData) {
+		if (!satisfiesRequirements(targetIfcElementData, target)) {
+			continue
+		}
+		const targetValue = findPropertyValueFromIfcElementData(targetIfcElementData, sharedProperty)
+		if (!targetValue) {
+			continue
+		}
+		const targets = targetsByValue.get(targetValue)
+		if (targets) {
+			targets.push(targetIfcElementData)
+		} else {
+			targetsByValue.set(targetValue, [targetIfcElementData])
+		}
+	}
+	return targetsByValue
+}
+
+const processAllIfcData = (
+	allIfcElementsData: IfcElementData[],
+	linkRequirements?: IfcElementLink[],
+	selectableRequirements?: SelectableRequirements[],
+	alwaysVisibleRequirements?: Requirements[],
+): void => {
+	if (linkRequirements && linkRequirements.length > 0) {
+		const targetsByRequirement = new Map<IfcElementLink, Map<Property['value'], IfcElementData[]>>()
+
+		for (const ifcElementData of allIfcElementsData) {
+			for (const linkRequirement of linkRequirements) {
+				const { sharedProperty, source, target } = linkRequirement
+
+				if (!satisfiesRequirements(ifcElementData, source)) {
+					continue
+				}
+				if (
+					ifcElementData.links &&
+					(source.linkName in ifcElementData.links || target.linkName in ifcElementData.links)
+				) {
+					continue
+				}
+				const sourceValue = findPropertyValueFromIfcElementData(ifcElementData, sharedProperty)
+				if (!sourceValue) {
+					continue
+				}
+
+				let targetsByValue = targetsByRequirement.get(linkRequirement)
+				if (!targetsByValue) {
+					targetsByValue = groupLinkTargetsByValue(allIfcElementsData, linkRequirement)
+					targetsByRequirement.set(linkRequirement, targetsByValue)
+				}
+
+				for (const targetIfcElementData of targetsByValue.get(sourceValue) ?? []) {
+					linkIfcData(ifcElementData, targetIfcElementData, linkRequirement)
+				}
+			}
+		}
+	}
+
+	for (const ifcElementData of allIfcElementsData) {
+		if (selectableRequirements) {
+			setIfcDataItemSelectable(ifcElementData, selectableRequirements)
+		}
+		if (alwaysVisibleRequirements) {
+			setIfcDataAlwaysVisible(ifcElementData, alwaysVisibleRequirements)
 		}
 	}
 }
@@ -598,14 +714,17 @@ const processIfcData = (
 }
 
 export {
+	buildPropertySetsIndex,
 	filterIfcElementsByPropertiesAndType,
 	filterIfcElementsDataByPropertiesAndType,
 	findPropertyValueFromIfcElementData,
 	getIfcElementTypeAndProperties,
+	processAllIfcData,
 	processIfcData,
 	removePropertiesFromIfcElements,
 	satisfiesRequirements,
 	setIfcDataAlwaysVisible,
 	setIfcDataItemSelectable,
 	setIfcDataLinks,
+	type PropertySetsIndex,
 }

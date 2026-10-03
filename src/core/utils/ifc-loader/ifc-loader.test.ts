@@ -2,10 +2,78 @@ import { IfcModel } from '@/core/models'
 import type { IfcElementData, SelectableRequirements } from '@/core/types'
 import path from 'node:path'
 import { Group } from 'three'
+import { IfcAPI, LogLevel } from 'web-ifc'
 import { describe, expect, it } from 'vitest'
-import { processIfcData } from '../properties-utils'
+import { getIfcElementTypeAndProperties, processIfcData } from '../properties-utils'
 import { extractDataToSave } from '../save-utils'
 import { loadIfcModel, loadIfcProperties } from './ifc-loader'
+
+const wasmPath = { path: `${path.resolve('public/wasm/')}/`, absolute: true }
+
+const readTestFile = async (fileName: string): Promise<Uint8Array> => {
+	const fs = await import('node:fs/promises')
+	return new Uint8Array(await fs.readFile(path.resolve('public/test', fileName)))
+}
+
+const readProperties = async (bytes: Uint8Array, expressIds?: number[]): Promise<IfcElementData[]> => {
+	let ifcElementsData: IfcElementData[] = []
+	await loadIfcProperties(
+		bytes,
+		data => {
+			ifcElementsData = data
+		},
+		() => {},
+		error => {
+			throw error
+		},
+		{ wasmPath, expressIds },
+	)
+	return ifcElementsData
+}
+
+describe('loadIfcProperties', () => {
+	it('reads the property sets of IFC4 models', async () => {
+		const ifcElementsData = await readProperties(await readTestFile('ifc4.ifc'))
+
+		expect(ifcElementsData).toHaveLength(2)
+		for (const ifcElementData of ifcElementsData) {
+			expect(ifcElementData.properties).toEqual([
+				{
+					name: 'Pset_Test',
+					properties: [
+						{ name: 'Code', value: 'W-01' },
+						{ name: 'Height', value: 3 },
+					],
+				},
+			])
+		}
+	})
+
+	it('returns the same data as reading the inverse relationships of each element', async () => {
+		const bytes = await readTestFile('castle.ifc')
+		const ifcElementsData = await readProperties(bytes)
+
+		const ifcAPI = new IfcAPI()
+		ifcAPI.SetWasmPath(wasmPath.path, wasmPath.absolute)
+		await ifcAPI.Init()
+		ifcAPI.SetLogLevel(LogLevel.LOG_LEVEL_OFF)
+		const modelID = ifcAPI.OpenModel(bytes)
+		const expected = ifcElementsData.map(({ expressId }) =>
+			getIfcElementTypeAndProperties(ifcAPI, modelID, expressId),
+		)
+		ifcAPI.CloseModel(modelID)
+
+		expect(ifcElementsData).toEqual(expected)
+	})
+
+	it('reads only the requested express ids', async () => {
+		const ifcElementsData = await readProperties(await readTestFile('ifc4.ifc'), [70])
+
+		expect(ifcElementsData.map(({ expressId, name }) => ({ expressId, name }))).toEqual([
+			{ expressId: 70, name: 'Wall B' },
+		])
+	})
+})
 
 describe('load-ifc', () => {
 	it('should load the file', async () => {

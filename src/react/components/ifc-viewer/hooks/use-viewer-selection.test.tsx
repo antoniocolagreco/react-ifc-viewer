@@ -253,6 +253,41 @@ describe('useViewerSelection', () => {
 		expect(renderScene).toHaveBeenCalled()
 	})
 
+	it('does not repeat hover work while the pointer stays on the same element', () => {
+		const element = new IfcElement(5)
+		const onMeshHover = vi.fn()
+		const refs = createViewerRefs()
+		let renders = 0
+
+		const { result } = renderHook(() => {
+			renders += 1
+			return useViewerSelection({
+				refs,
+				renderScene,
+				showBoundingSphere: false,
+				onMeshHover,
+			})
+		})
+
+		act(() => {
+			result.current.hover(element)
+		})
+		const rendersAfterFirstHover = renders
+		renderScene.mockClear()
+		mockSetMaterialToHovered.mockClear()
+
+		act(() => {
+			result.current.hover(element)
+			result.current.hover(element)
+		})
+
+		expect(result.current.cursorStyle).toEqual({ cursor: 'pointer' })
+		expect(renders).toBe(rendersAfterFirstHover)
+		expect(renderScene).not.toHaveBeenCalled()
+		expect(mockSetMaterialToHovered).not.toHaveBeenCalled()
+		expect(onMeshHover).toHaveBeenCalledTimes(3)
+	})
+
 	it('selects element by express id and uses its first instance record', () => {
 		const element = new IfcElement(99)
 		const instanceRecord: IfcInstanceRecord = {

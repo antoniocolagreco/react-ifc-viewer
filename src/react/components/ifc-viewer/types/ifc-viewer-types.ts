@@ -1,5 +1,6 @@
 import type { IfcElement, IfcModel } from '@/core/models'
 import type { IfcElementData, IfcElementLink, Requirements, SelectableRequirements } from '@/core/types'
+import type { IfcElementDataRecord } from '@/core/utils'
 import type { ComponentPropsWithRef } from 'react'
 
 type IfcViewerStatus =
@@ -32,7 +33,7 @@ type IfcMouseState = IfcPosition & { clicked: boolean }
 
 type IfcViewerProps = ComponentPropsWithRef<'div'> & {
 	url: string
-	data?: IfcElementData[]
+	data?: IfcElementData[] | IfcElementDataRecord
 
 	onModelLoaded?: (model: IfcModel) => void
 

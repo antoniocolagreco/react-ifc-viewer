@@ -31,11 +31,11 @@ class IfcMesh extends InstancedMesh<BufferGeometry, MeshLambertMaterial> {
 		}
 		const nextArray = new Float32Array(nextCapacity * 16)
 		nextArray.set(this.instanceMatrix.array as Float32Array)
+		this.dispose()
 		this.instanceMatrix = new InstancedBufferAttribute(nextArray, 16)
 		this.instanceMatrix.setUsage(DynamicDrawUsage)
 		this.capacity = nextCapacity
 		this.instanceMatrix.needsUpdate = true
-		this.computeBoundingSphere()
 	}
 
 	allocateInstance = (matrix: Matrix4): number => {
@@ -45,6 +45,7 @@ class IfcMesh extends InstancedMesh<BufferGeometry, MeshLambertMaterial> {
 		this.count = nextIndex + 1
 		this.instanceMatrix.needsUpdate = true
 		this.boundingSphere = null
+		this.boundingBox = null
 		return nextIndex
 	}
 
@@ -55,6 +56,7 @@ class IfcMesh extends InstancedMesh<BufferGeometry, MeshLambertMaterial> {
 		this.setMatrixAt(instanceId, matrix)
 		this.instanceMatrix.needsUpdate = true
 		this.boundingSphere = null
+		this.boundingBox = null
 	}
 
 	releaseInstance = (instanceId: number): number | undefined => {
@@ -72,6 +74,7 @@ class IfcMesh extends InstancedMesh<BufferGeometry, MeshLambertMaterial> {
 		this.count = lastIndex
 		this.instanceMatrix.needsUpdate = true
 		this.boundingSphere = null
+		this.boundingBox = null
 		if (instanceId === lastIndex) {
 			return undefined
 		}

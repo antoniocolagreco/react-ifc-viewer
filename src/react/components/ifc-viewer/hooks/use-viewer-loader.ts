@@ -1,21 +1,23 @@
-import { useCallback } from 'react'
+import { useCallback, useRef } from 'react'
 import type { IfcModel } from '@/core/models'
 import type { IfcElementData, IfcElementLink, Requirements, SelectableRequirements } from '@/core/types'
 import {
 	alignObject,
+	disposeObjects,
 	fetchFile,
 	loadIfcModel,
 	loadIfcProperties,
+	processAllIfcData,
 	restoreDataToIfcModelFromProperties,
 	restoreDataToIfcModelFromRecord,
+	type IfcElementDataRecord,
 } from '@/core/utils'
-import { processIfcData } from '@/core/utils'
 import type { IfcLoadingStatus, RenderScene, ViewerRefs } from '../types'
 
 type UseViewerLoaderParams = {
 	refs: ViewerRefs
 	url: string
-	data?: IfcElementData[]
+	data?: IfcElementData[] | IfcElementDataRecord
 	alwaysVisibleRequirements?: Requirements[]
 	selectableRequirements?: SelectableRequirements[]
 	linksRequirements?: IfcElementLink[]
@@ -27,7 +29,8 @@ type UseViewerLoaderParams = {
 }
 
 type ViewerLoaderApi = {
-	loadFile: () => Promise<void>
+	loadFile: () => Promise<boolean>
+	cancelLoading: () => void
 }
 
 const useViewerLoader = ({
@@ -43,6 +46,8 @@ const useViewerLoader = ({
 	resetView,
 	setLoadingProgress,
 }: UseViewerLoaderParams): ViewerLoaderApi => {
+	const loadIdRef = useRef(0)
+
 	// Refresh cached raycast targets so selection logic never walks the scene graph during pointer events.
 	const refreshRaycastTargets = useCallback(() => {
 		const model = refs.modelRef.current
@@ -53,32 +58,32 @@ const useViewerLoader = ({
 		refs.raycastTargetsRef.current = model.getAllMeshes().filter(mesh => mesh.count > 0)
 	}, [refs])
 
-	// Process properties synchronously to keep logic simple and avoid worker deployment issues.
-	const processData = useCallback(
-		(elements: IfcElementData[]): IfcElementData[] => {
-			const total = elements.length
-			for (let index = 0; index < total; index += 1) {
-				const element = elements[index]
-				if (!element) {
-					continue
-				}
-				processIfcData(element, elements, linksRequirements, selectableRequirements, alwaysVisibleRequirements)
-				const processed = index + 1
-				if (processed % 50 === 0 || processed === total) {
-					setLoadingProgress({ status: 'PROCESSING', loaded: processed, total })
-				}
-			}
-			return elements
-		},
-		[alwaysVisibleRequirements, linksRequirements, selectableRequirements, setLoadingProgress],
-	)
+	const cancelLoading = useCallback(() => {
+		loadIdRef.current += 1
+	}, [])
 
 	const loadFile = useCallback(async () => {
+		loadIdRef.current += 1
+		const loadId = loadIdRef.current
+		const isCurrentLoad = () => loadId === loadIdRef.current
+		const setProgress = (status: IfcLoadingStatus) => {
+			if (isCurrentLoad()) {
+				setLoadingProgress(status)
+			}
+		}
+
 		resetScene()
+		refs.modelRef.current = undefined
 		refs.raycastTargetsRef.current = []
+		refs.selectedIfcElementRef.current = undefined
+		refs.previousSelectedIfcElementRef.current = undefined
+		refs.selectedInstanceRecordRef.current = undefined
+		refs.hoveredIfcElementRef.current = undefined
+		refs.previousHoveredIfcElementRef.current = undefined
+		refs.ifcMarkerLinksRef.current = []
 
 		let ifcBuffer: Uint8Array = new Uint8Array()
-		setLoadingProgress({ status: 'FETCHING' })
+		setProgress({ status: 'FETCHING' })
 
 		await fetchFile(
 			url,
@@ -86,19 +91,31 @@ const useViewerLoader = ({
 				ifcBuffer = buffer
 			},
 			progress => {
-				setLoadingProgress({ status: 'FETCHING', loaded: progress.loaded, total: progress.total })
+				setProgress({ status: 'FETCHING', loaded: progress.loaded, total: progress.total })
 			},
 			error => {
-				setLoadingProgress({ status: 'ERROR_FETCHING' })
+				setProgress({ status: 'ERROR_FETCHING' })
 				throw error
 			},
 		)
 
-		setLoadingProgress({ status: 'LOADING_MESHES' })
+		if (!isCurrentLoad()) {
+			return false
+		}
+
+		setProgress({ status: 'LOADING_MESHES' })
+
+		let model: IfcModel | undefined
 
 		await loadIfcModel(
 			ifcBuffer,
 			loadedModel => {
+				if (!isCurrentLoad()) {
+					disposeObjects(loadedModel)
+					return
+				}
+
+				model = loadedModel
 				refs.modelRef.current = loadedModel
 				refs.sceneRef.current.add(loadedModel)
 
@@ -113,47 +130,51 @@ const useViewerLoader = ({
 				renderScene()
 			},
 			error => {
-				setLoadingProgress({ status: 'ERROR_LOADING_MESHES' })
+				setProgress({ status: 'ERROR_LOADING_MESHES' })
 				throw error
 			},
 		)
 
-		const model = refs.modelRef.current
+		if (!isCurrentLoad()) {
+			return false
+		}
 		if (!model) {
 			throw new Error('Model not found')
 		}
 
-		let modelData: IfcElementData[] = []
-
 		if (data) {
-			modelData = data
-			setLoadingProgress({ status: 'SETTING_DATA' })
-			restoreDataToIfcModelFromRecord(model, modelData)
+			setProgress({ status: 'SETTING_DATA' })
+			restoreDataToIfcModelFromRecord(model, data)
 			refreshRaycastTargets()
 		} else {
+			let modelData: IfcElementData[] = []
+
 			await loadIfcProperties(
 				ifcBuffer,
 				propertiesData => {
 					modelData = propertiesData
 				},
 				progress => {
-					setLoadingProgress({
+					setProgress({
 						status: 'LOADING_PROPERTIES',
 						loaded: progress.loaded,
 						total: progress.total,
 					})
 				},
 				error => {
-					setLoadingProgress({ status: 'ERROR_LOADING_PROPERTIES' })
+					setProgress({ status: 'ERROR_LOADING_PROPERTIES' })
 					throw error
 				},
+				{ expressIds: model.getElements().map(ifcElement => ifcElement.userData.expressId) },
 			)
 
-			if (modelData.length > 0) {
-				setLoadingProgress({ status: 'PROCESSING', loaded: 0, total: modelData.length })
-				modelData = processData(modelData)
+			if (!isCurrentLoad()) {
+				return false
 			}
-			setLoadingProgress({ status: 'SETTING_DATA' })
+
+			setProgress({ status: 'PROCESSING', loaded: 0, total: modelData.length })
+			processAllIfcData(modelData, linksRequirements, selectableRequirements ?? [], alwaysVisibleRequirements)
+			setProgress({ status: 'SETTING_DATA' })
 			restoreDataToIfcModelFromProperties(model, modelData)
 			refreshRaycastTargets()
 		}
@@ -162,21 +183,24 @@ const useViewerLoader = ({
 			onModelLoaded(model)
 		}
 
-		setLoadingProgress({ status: 'DONE' })
+		setProgress({ status: 'DONE' })
+		return true
 	}, [
+		alwaysVisibleRequirements,
 		data,
-		processData,
+		linksRequirements,
 		onModelLoaded,
 		refreshRaycastTargets,
 		refs,
 		renderScene,
 		resetScene,
 		resetView,
+		selectableRequirements,
 		setLoadingProgress,
 		url,
 	])
 
-	return { loadFile }
+	return { loadFile, cancelLoading }
 }
 
 export { useViewerLoader }

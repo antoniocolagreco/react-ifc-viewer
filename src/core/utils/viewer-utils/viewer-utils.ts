@@ -1,6 +1,6 @@
 import type { IfcElement, IfcModel } from '@/core/models'
 import type { IfcPosition } from '@/react/components'
-import { Color, MeshLambertMaterial, Vector3, type PerspectiveCamera, type WebGLRenderer } from 'three'
+import { MeshLambertMaterial, Vector3, type PerspectiveCamera, type WebGLRenderer } from 'three'
 
 const scratchProjectionVector = new Vector3()
 
@@ -40,7 +40,6 @@ const setMaterialToSelected = (
 	depthTest = true,
 ): void => {
 	ifcElement.visible = true
-	const mixingColor = new Color()
 	for (const record of ifcElement.getInstanceRecords()) {
 		const baseMaterial = ifcModel.getElementMaterial(record.materialId)
 		if (!baseMaterial) {
@@ -49,10 +48,9 @@ const setMaterialToSelected = (
 		let selectedMaterial = ifcModel.getElementSelectMaterial(record.materialId)
 		if (!selectedMaterial) {
 			selectedMaterial = new MeshLambertMaterial()
+			selectedMaterial.color.lerpColors(baseMaterial.color, selectedMaterial.color, 0.5)
 			ifcModel.setElementSelectMaterial(record.materialId, selectedMaterial)
 		}
-		mixingColor.lerpColors(baseMaterial.color, selectedMaterial.color, 0.5)
-		selectedMaterial.color.copy(mixingColor)
 		selectedMaterial.emissive.setHex(color)
 		selectedMaterial.emissiveIntensity = 1
 		selectedMaterial.depthTest = depthTest
@@ -74,7 +72,6 @@ const setMaterialToHovered = (
 	depthTest = true,
 ): void => {
 	ifcElement.visible = true
-	const mixingColor = new Color()
 	for (const record of ifcElement.getInstanceRecords()) {
 		const baseMaterial = ifcModel.getElementMaterial(record.materialId)
 		if (!baseMaterial) {
@@ -83,10 +80,9 @@ const setMaterialToHovered = (
 		let hoveredMaterial = ifcModel.getElementHoverMaterial(record.materialId)
 		if (!hoveredMaterial) {
 			hoveredMaterial = new MeshLambertMaterial()
+			hoveredMaterial.color.lerpColors(baseMaterial.color, hoveredMaterial.color, 0.1)
 			ifcModel.setElementHoverMaterial(record.materialId, hoveredMaterial)
 		}
-		mixingColor.lerpColors(baseMaterial.color, hoveredMaterial.color, 0.1)
-		hoveredMaterial.color.copy(mixingColor)
 		hoveredMaterial.emissive.setHex(color)
 		hoveredMaterial.emissiveIntensity = 0.1
 		hoveredMaterial.depthTest = depthTest

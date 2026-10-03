@@ -31,7 +31,7 @@ const IfcAnchor: FC<IfcAnchorProps> = props => {
 	}
 
 	const handleOnKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
-		if ((event.key === 'Enter' || event.key === 'Space') && onSelect) {
+		if ((event.key === 'Enter' || event.key === ' ') && onSelect) {
 			onSelect()
 		}
 		if (onKeyDown) {

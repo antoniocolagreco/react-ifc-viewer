@@ -1,5 +1,5 @@
 import type { IfcElementData, IfcElementLink, Requirements, SelectableRequirements } from '@/core/types'
-import { extractDataToSave, getPercetage, loadIfcProperties, processIfcData, type WasmPathType } from '@/core/utils'
+import { extractDataToSave, getPercetage, loadIfcProperties, processAllIfcData, type WasmPathType } from '@/core/utils'
 import { useCallback, useState } from 'react'
 import type { IfcLoadingStatus } from '../components'
 import { useGlobalState } from './use-global-state'
@@ -158,28 +158,8 @@ const useIfcViewer = () => {
 			}
 
 			const total = ifcElementsData.length
-			for (let index = 0; index < total; index++) {
-				const ifcElementData = ifcElementsData[index]
-
-				if (!ifcElementData) {
-					throw new Error('ifcElement not found')
-				}
-
-				processIfcData(
-					ifcElementData,
-					ifcElementsData,
-					linksRequirements,
-					selectableRequirements,
-					alwaysVisibleRequirements,
-				)
-
-				setPropertiesReaderProgress({
-					status: 'PROCESSING',
-					loaded: index,
-					total,
-					percentage: getPercetage(index, total),
-				})
-			}
+			setPropertiesReaderProgress({ status: 'PROCESSING', loaded: 0, total, percentage: getPercetage(0, total) })
+			processAllIfcData(ifcElementsData, linksRequirements, selectableRequirements, alwaysVisibleRequirements)
 
 			const dataToSave = extractDataToSave(ifcElementsData, keepProperties)
 

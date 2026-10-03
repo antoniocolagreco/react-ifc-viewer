@@ -1,9 +1,57 @@
 import { IfcElement, IfcModel } from '@/core/models'
 import { createBoundingSphereFromElement } from '@/core/utils'
-import { BoxGeometry, Matrix4, MeshLambertMaterial } from 'three'
+import { Box3, BoxGeometry, Matrix4, MeshLambertMaterial } from 'three'
 import { describe, expect, it } from 'vitest'
 
 describe('IfcModel instanced mesh management', () => {
+	it('finds elements by express id', () => {
+		const model = new IfcModel()
+		const first = new IfcElement(3)
+		const second = new IfcElement(4)
+		model.add(first, second)
+
+		expect(model.getIfcElement(3)).toBe(first)
+		expect(model.getIfcElement(4)).toBe(second)
+		expect(model.getIfcElement(5)).toBeUndefined()
+	})
+
+	it('keeps instanced mesh bounds in sync with added instances', () => {
+		const model = new IfcModel()
+		const geometry = new BoxGeometry(1, 1, 1)
+		const material = new MeshLambertMaterial()
+		const geometryId = 'geom-bounds-O'
+		const materialId = 'mat-bounds-O'
+		model.setElementGeometry(geometryId, geometry)
+		model.setElementMaterial(materialId, material)
+
+		const near = new IfcElement(1)
+		const far = new IfcElement(2)
+		model.add(near, far)
+		model.addInstanceRecord({
+			element: near,
+			geometry,
+			geometryId,
+			material,
+			materialId,
+			matrix: new Matrix4(),
+		})
+		model.updateMatrixWorld(true)
+		const initialBox = new Box3().setFromObject(model)
+		expect(initialBox.max.x).toBeCloseTo(0.5)
+
+		model.addInstanceRecord({
+			element: far,
+			geometry,
+			geometryId,
+			material,
+			materialId,
+			matrix: new Matrix4().makeTranslation(10, 0, 0),
+		})
+		const updatedBox = new Box3().setFromObject(model)
+
+		expect(updatedBox.max.x).toBeCloseTo(10.5)
+	})
+
 	it('creates instance records and moves between states', () => {
 		const model = new IfcModel()
 		const element = new IfcElement(1)

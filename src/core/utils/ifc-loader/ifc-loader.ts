@@ -1,9 +1,32 @@
 import { IfcModel } from '@/core/models'
 import type { IfcElementData, ProgressStatus } from '@/core/types'
-import { buildifcElement, getIfcElementTypeAndProperties, getPath } from '@/core/utils'
+import { buildifcElement, buildPropertySetsIndex, getIfcElementTypeAndProperties, getPath } from '@/core/utils'
 import { IfcAPI, LogLevel } from 'web-ifc'
 
 type WasmPathType = { path: string; absolute?: boolean }
+
+const ifcAPICache = new Map<string, Promise<IfcAPI>>()
+
+const getIfcAPI = (wasmPath: WasmPathType): Promise<IfcAPI> => {
+	const cacheKey = `${wasmPath.path}|${String(wasmPath.absolute)}`
+	const cachedIfcAPI = ifcAPICache.get(cacheKey)
+	if (cachedIfcAPI) {
+		return cachedIfcAPI
+	}
+	const ifcAPI = new IfcAPI()
+	ifcAPI.SetWasmPath(wasmPath.path, wasmPath.absolute)
+	const initializedIfcAPI = ifcAPI.Init().then(() => {
+		ifcAPI.SetLogLevel(LogLevel.LOG_LEVEL_OFF)
+		return ifcAPI
+	})
+	initializedIfcAPI.catch(() => ifcAPICache.delete(cacheKey))
+	ifcAPICache.set(cacheKey, initializedIfcAPI)
+	return initializedIfcAPI
+}
+
+const YIELD_INTERVAL_MS = 50
+
+const yieldToEventLoop = (): Promise<void> => new Promise(resolve => setTimeout(resolve, 0))
 
 type LoadIfcFunctionType = (
 	ifcBuffer: Uint8Array,
@@ -20,21 +43,19 @@ const loadIfcModel: LoadIfcFunctionType = async (ifcBuffer, onLoad, onError, opt
 
 	const wasmPath = options?.wasmPath ?? defaultWasmPath
 
-	const ifcAPI = new IfcAPI()
 	const ifcModel = new IfcModel()
 
+	let ifcAPI: IfcAPI | undefined
 	let modelID = -1
 
 	try {
-		ifcAPI.SetWasmPath(wasmPath.path, wasmPath.absolute)
+		ifcAPI = await getIfcAPI(wasmPath)
+		const api = ifcAPI
 
-		await ifcAPI.Init()
-		ifcAPI.SetLogLevel(LogLevel.LOG_LEVEL_OFF)
+		modelID = api.OpenModel(ifcBuffer)
 
-		modelID = ifcAPI.OpenModel(ifcBuffer)
-
-		ifcAPI.StreamAllMeshes(modelID, flatMesh => {
-			const ifcElement = buildifcElement(ifcAPI, modelID, flatMesh, ifcModel)
+		api.StreamAllMeshes(modelID, flatMesh => {
+			const ifcElement = buildifcElement(api, modelID, flatMesh, ifcModel)
 			ifcModel.add(ifcElement)
 		})
 
@@ -42,13 +63,11 @@ const loadIfcModel: LoadIfcFunctionType = async (ifcBuffer, onLoad, onError, opt
 	} catch (error) {
 		onError(error as Error)
 	} finally {
-		if (modelID !== -1) {
+		if (ifcAPI && modelID !== -1) {
 			ifcAPI.CloseModel(modelID)
 		}
 	}
 }
-
-const PROPERTY_PROGRESS_BATCH_SIZE = 25
 
 type LoadIfcDataType = (
 	ifcBuffer: Uint8Array,
@@ -57,6 +76,7 @@ type LoadIfcDataType = (
 	onError: (error: Error) => void,
 	options?: {
 		wasmPath?: WasmPathType
+		expressIds?: number[]
 	},
 ) => Promise<void>
 
@@ -68,51 +88,47 @@ const loadIfcProperties: LoadIfcDataType = async (ifcBuffer, onLoad, onProgress,
 
 	const wasmPath = options?.wasmPath ?? defaultWasmPath
 
-	const ifcAPI = new IfcAPI()
-
+	let ifcAPI: IfcAPI | undefined
 	let modelID = -1
 
 	try {
-		ifcAPI.SetWasmPath(wasmPath.path, wasmPath.absolute)
+		ifcAPI = await getIfcAPI(wasmPath)
+		const api = ifcAPI
 
-		await ifcAPI.Init()
-		ifcAPI.SetLogLevel(LogLevel.LOG_LEVEL_OFF)
+		modelID = api.OpenModel(ifcBuffer)
+		const openedModelID = modelID
 
-		modelID = ifcAPI.OpenModel(ifcBuffer)
-
-		let loaded = 0
-		let total = 0
-
-		const promises: Promise<IfcElementData>[] = []
-
-		ifcAPI.StreamAllMeshes(modelID, flatMesh => {
-			total++
-			const ifcDataPromise = new Promise<IfcElementData>(resolve => {
-				setTimeout(() => {
-					resolve(getIfcElementTypeAndProperties(ifcAPI, modelID, flatMesh.expressID))
-				}, 0)
+		let expressIds = options?.expressIds
+		if (!expressIds) {
+			const streamedExpressIds: number[] = []
+			api.StreamAllMeshes(openedModelID, flatMesh => {
+				streamedExpressIds.push(flatMesh.expressID)
 			})
-			promises.push(ifcDataPromise)
-		})
+			expressIds = streamedExpressIds
+		}
 
+		const total = expressIds.length
+		const propertySetsIndex = buildPropertySetsIndex(api, openedModelID)
 		const data: IfcElementData[] = []
+		let lastYield = performance.now()
 
-		for (const promise of promises) {
-			const ifcUserData = await promise
-			data.push(ifcUserData)
-			loaded++
-			if (loaded % PROPERTY_PROGRESS_BATCH_SIZE === 0 || loaded === total) {
-				onProgress({ state: 'PROGRESS', loaded, total })
+		for (const expressId of expressIds) {
+			data.push(getIfcElementTypeAndProperties(api, openedModelID, expressId, propertySetsIndex))
+			if (performance.now() - lastYield > YIELD_INTERVAL_MS) {
+				onProgress({ state: 'PROGRESS', loaded: data.length, total })
+				await yieldToEventLoop()
+				lastYield = performance.now()
 			}
 		}
 
-		onProgress({ state: 'DONE', loaded, total })
+		onProgress({ state: 'PROGRESS', loaded: total, total })
+		onProgress({ state: 'DONE', loaded: total, total })
 		onLoad(data)
 	} catch (error: unknown) {
 		onProgress({ state: 'ERROR' })
 		onError(error as Error)
 	} finally {
-		if (modelID !== -1) {
+		if (ifcAPI && modelID !== -1) {
 			ifcAPI.CloseModel(modelID)
 		}
 	}

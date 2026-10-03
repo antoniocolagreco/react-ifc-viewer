@@ -18,6 +18,9 @@ import {
 import type { IfcViewMode, RenderScene, ViewerRefs } from '../types'
 import { VIEWER_LAYER_HELPERS } from '../constants'
 
+const DEFAULT_CURSOR_STYLE: CSSProperties = { cursor: 'default' }
+const POINTER_CURSOR_STYLE: CSSProperties = { cursor: 'pointer' }
+
 type UseViewerSelectionParams = {
 	refs: ViewerRefs
 	renderScene: RenderScene
@@ -52,7 +55,7 @@ const useViewerSelection = ({
 	onMeshHover,
 }: UseViewerSelectionParams): ViewerSelectionApi => {
 	const [viewMode, setViewMode] = useState<IfcViewMode>('VIEW_MODE_ALL')
-	const [cursorStyle, setCursorStyle] = useState<CSSProperties>({ cursor: 'default' })
+	const [cursorStyle, setCursorStyle] = useState<CSSProperties>(DEFAULT_CURSOR_STYLE)
 
 	// Cache only the meshes we actually raycast so hover/select stays lean.
 	const refreshRaycastTargets = useCallback(() => {
@@ -91,12 +94,16 @@ const useViewerSelection = ({
 
 		refs.boundingSphereRef.current = boundingSphere
 
-		if (!showBoundingSphere) {
-			return
+		const previousSphereMesh = refs.boundingSphereMeshRef.current
+		if (previousSphereMesh) {
+			refs.sceneRef.current.remove(previousSphereMesh)
+			previousSphereMesh.geometry.dispose()
+			previousSphereMesh.material.dispose()
+			refs.boundingSphereMeshRef.current = undefined
 		}
 
-		if (refs.boundingSphereMeshRef.current) {
-			refs.sceneRef.current.remove(refs.boundingSphereMeshRef.current)
+		if (!showBoundingSphere) {
+			return
 		}
 
 		const sphereMesh = createSphereMesh(boundingSphere)
@@ -197,16 +204,14 @@ const useViewerSelection = ({
 	const hover = useCallback(
 		(ifcElement?: IfcElement, _instanceRecord?: IfcInstanceRecord) => {
 			void _instanceRecord
-			refs.previousHoveredIfcElementRef.current = refs.hoveredIfcElementRef.current
-			refs.hoveredIfcElementRef.current = ifcElement
+			if (ifcElement !== refs.hoveredIfcElementRef.current) {
+				refs.previousHoveredIfcElementRef.current = refs.hoveredIfcElementRef.current
+				refs.hoveredIfcElementRef.current = ifcElement
 
-			switchHoveredMesh()
-			renderScene()
+				switchHoveredMesh()
+				renderScene()
 
-			if (refs.hoveredIfcElementRef.current) {
-				setCursorStyle({ cursor: 'pointer' })
-			} else {
-				setCursorStyle({ cursor: 'default' })
+				setCursorStyle(ifcElement ? POINTER_CURSOR_STYLE : DEFAULT_CURSOR_STYLE)
 			}
 
 			if (ifcElement && onMeshHover) {

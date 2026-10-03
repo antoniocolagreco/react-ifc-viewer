@@ -24,7 +24,7 @@ const MockComponent: FC<MockComponentsProps> = props => {
 		let ifcBuffer: Uint8Array = new Uint8Array()
 
 		await fetchFile(
-			`${await getPath()}/test/facility.ifc`,
+			`${await getPath()}test/facility.ifc`,
 			buffer => {
 				ifcBuffer = buffer
 			},

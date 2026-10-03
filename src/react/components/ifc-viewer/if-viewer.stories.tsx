@@ -38,7 +38,7 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 const defaultProps: IfcViewerProps = {
-	url: `${await getPath()}/test/facility.ifc`,
+	url: `${await getPath()}test/facility.ifc`,
 	enableMeshHover: true,
 	enableMeshSelection: true,
 	style: { minHeight: '480px' },

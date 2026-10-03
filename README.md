@@ -117,7 +117,7 @@ Where `linksBetweenElements` is an array of [`IfcElementLink`](./src/core/types/
 Additional notable props:
 
 - `links`: Couples related elements (e.g., sensors to devices) so they can be resolved quickly at runtime.
-- `selectable`: Declares which elements can be interacted with via hover/click and programmatic selection.
+- `selectable`: Declares which elements can be interacted with via hover/click and programmatic selection. When omitted, every element is selectable.
 - `alwaysVisible`: Keeps specific element classes visible in every view mode.
 - `highlightedSelectables`: Visually emphasises selectables that match a given requirement.
 - `showBoundingSphere`: Renders a helper sphere when focusing the camera on a selected element.
@@ -190,7 +190,7 @@ Optimize performance by pre-processing IFC properties:
 
 ```jsx
 import { useEffect, useState } from 'react'
-import type { IfcElementData } from 'react-ifc-viewer'
+import type { IfcElementDataRecord } from 'react-ifc-viewer'
 import { IfcViewer, useIfcViewer } from 'react-ifc-viewer'
 
 function PreprocessedViewer({ src }: { src: string }) {
@@ -200,7 +200,7 @@ function PreprocessedViewer({ src }: { src: string }) {
     }
   } = useIfcViewer()
 
-  const [data, setData] = useState<IfcElementData[]>()
+  const [data, setData] = useState<IfcElementDataRecord>()
 
   useEffect(() => {
     const preprocess = async () => {

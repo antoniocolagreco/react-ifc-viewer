@@ -1,4 +1,4 @@
-import { disposeObjects } from '@/core/utils'
+import { disposeMaterial, disposeObjects } from '@/core/utils'
 import { useCallback } from 'react'
 import { VIEWER_LAYER_HELPERS, VIEWER_LAYER_MESHES } from '../constants'
 import {
@@ -85,6 +85,18 @@ const useViewerScene = ({ refs }: UseViewerSceneParams): ViewerSceneApi => {
 	)
 
 	const resetScene = useCallback(() => {
+		const modelData = refs.modelRef.current?.userData
+		if (modelData) {
+			for (const materialsMap of [
+				modelData.hoverMaterialsMap,
+				modelData.selectMaterialsMap,
+				modelData.transparentMaterialsMap,
+			]) {
+				for (const material of materialsMap.values()) {
+					disposeMaterial(material)
+				}
+			}
+		}
 		disposeObjects(refs.sceneRef.current)
 		refs.sceneRef.current.children.length = 0
 		populateSceneWithDefaults(refs.sceneRef.current, VIEWER_LAYER_HELPERS)
@@ -162,6 +174,10 @@ const useViewerScene = ({ refs }: UseViewerSceneParams): ViewerSceneApi => {
 		refs.renderLoopRef.current?.stop()
 		refs.renderLoopRef.current = undefined
 		refs.resizeObserverRef.current?.disconnect()
+		refs.resizeObserverRef.current = undefined
+		clearTimeout(refs.renderingTimeoutRef.current)
+		refs.renderingTimeoutRef.current = undefined
+		refs.viewportSizeRef.current = { width: 0, height: 0 }
 		refs.rendererRef.current?.dispose()
 		refs.rendererRef.current = undefined
 		const controls = refs.controlsRef.current
@@ -170,6 +186,7 @@ const useViewerScene = ({ refs }: UseViewerSceneParams): ViewerSceneApi => {
 				controls.removeEventListener(listener.type, listener.handler)
 			}
 			refs.controlsListenersRef.current = []
+			controls.dispose()
 		}
 		refs.cameraRef.current = undefined
 		refs.controlsRef.current = undefined
