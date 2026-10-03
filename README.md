@@ -30,7 +30,7 @@ pnpm add react-ifc-viewer
 **Prerequisites:**
 
 - React 19.0.0+
-- Three.js 0.175.0+  
+- Three.js 0.175.0+
 - Web-IFC 0.0.66+
 - Web-IFC WASM files in `public/wasm` directory
 
@@ -38,23 +38,22 @@ pnpm add react-ifc-viewer
 
 ```jsx
 import { IfcViewer, IfcOverlay, IfcGreenMarker, IfcControls } from 'react-ifc-viewer'
-import 'react-ifc-viewer/css'
 
 function App() {
-  return (
-    <IfcViewer url="/model.ifc" enableMeshHover enableMeshSelection>
-      <IfcOverlay
-        requirements={{
-          type: 'IfcSensor',
-          properties: [{ name: 'SensorType', value: 'Temperature' }]
-        }}
-        onSelect={(data) => console.log('Sensor selected:', data)}
-      >
-        <IfcGreenMarker hoverEffect />
-      </IfcOverlay>
-      <IfcControls />
-    </IfcViewer>
-  )
+	return (
+		<IfcViewer url="/model.ifc" enableMeshHover enableMeshSelection>
+			<IfcOverlay
+				requirements={{
+					type: 'IfcSensor',
+					properties: [{ name: 'SensorType', value: 'Temperature' }],
+				}}
+				onSelect={data => console.log('Sensor selected:', data)}
+			>
+				<IfcGreenMarker hoverEffect />
+			</IfcOverlay>
+			<IfcControls />
+		</IfcViewer>
+	)
 }
 ```
 
@@ -75,7 +74,7 @@ function App() {
 ### View Modes
 
 - **All**: Show all elements (default)
-- **Transparent**: Semi-transparent non-selectable elements  
+- **Transparent**: Semi-transparent non-selectable elements
 - **Selectable Only**: Hide non-selectable elements
 
 ### Performance Optimization
@@ -95,21 +94,21 @@ Main viewer component for rendering IFC models.
 
 ```jsx
 <IfcViewer
-  url="/path/to/model.ifc"
-  enableMeshHover
-  enableMeshSelection
-  hoverColor={0x00ff00}
-  selectedColor={0xff0000}
-  links={linksBetweenElements}
-  selectable={[{ type: 'IfcSensor' }]}
-  alwaysVisible={[{ type: 'IfcWall' }]}
-  highlightedSelectables={[{ type: 'IfcSensor', properties: [{ name: 'Status', value: 'Alarm' }] }]}
-  showBoundingSphere={false}
-  onModelLoaded={(model) => {}}
-  onMeshSelect={(element) => {}}
-  data={preProcessedData} // Optional: skip initial scan
+	url="/path/to/model.ifc"
+	enableMeshHover
+	enableMeshSelection
+	hoverColor={0x00ff00}
+	selectedColor={0xff0000}
+	links={linksBetweenElements}
+	selectable={[{ type: 'IfcSensor' }]}
+	alwaysVisible={[{ type: 'IfcWall' }]}
+	highlightedSelectables={[{ type: 'IfcSensor', properties: [{ name: 'Status', value: 'Alarm' }] }]}
+	showBoundingSphere={false}
+	onModelLoaded={model => {}}
+	onMeshSelect={element => {}}
+	data={preProcessedData} // Optional: skip initial scan
 >
-  {/* Child components */}
+	{/* Child components */}
 </IfcViewer>
 ```
 
@@ -129,15 +128,15 @@ Creates positioned overlays on IFC elements matching specified criteria.
 
 ```jsx
 <IfcOverlay
-  requirements={{
-    type: 'IfcWall',
-    properties: [{ name: 'Material', value: 'Concrete' }],
-    expressId: 12345 // Optional: target specific element
-  }}
-  onSelect={(data) => {}}
-  onHover={(data) => {}}
+	requirements={{
+		type: 'IfcWall',
+		properties: [{ name: 'Material', value: 'Concrete' }],
+		expressId: 12345, // Optional: target specific element
+	}}
+	onSelect={data => {}}
+	onHover={data => {}}
 >
-  <IfcGreenMarker hoverEffect />
+	<IfcGreenMarker hoverEffect />
 </IfcOverlay>
 ```
 
@@ -155,32 +154,32 @@ Access viewer state and control functions.
 
 ```jsx
 const {
-  // Camera controls
-  viewPort: { focusView, fitView, resetView, changeViewMode, viewMode },
-  
-  // Loading state
-  loadingProgress,
-  
-  // Model access
-  model,
-  selectableElements,
-  
-  // Selection methods
-  selectByProperty,
-  selectByExpressId,
-  getElementByExpressId,
-  getElementsWithData,
-  renderScene,
-  updateAnchors,
-  
-  // Utilities
-  utilities: { propertiesReader }
+	// Camera controls
+	viewPort: { focusView, fitView, resetView, changeViewMode, viewMode },
+
+	// Loading state
+	loadingProgress,
+
+	// Model access
+	model,
+	selectableElements,
+
+	// Selection methods
+	selectByProperty,
+	selectByExpressId,
+	getElementByExpressId,
+	getElementsWithData,
+	renderScene,
+	updateAnchors,
+
+	// Utilities
+	utilities: { propertiesReader },
 } = useIfcViewer()
 
 const loadingPercentage =
-  loadingProgress.loaded && loadingProgress.total
-    ? Math.round((loadingProgress.loaded / loadingProgress.total) * 100)
-    : 0
+	loadingProgress.loaded && loadingProgress.total
+		? Math.round((loadingProgress.loaded / loadingProgress.total) * 100)
+		: 0
 ```
 
 ## Advanced Usage
@@ -308,7 +307,7 @@ function AlarmSystemViewer() {
 
 ⚠️ **This library is in active development and not recommended for production use.**
 
-- Limited test coverage  
+- Limited test coverage
 - Instanced mesh performance tuning is ongoing
 - API may change between versions
 

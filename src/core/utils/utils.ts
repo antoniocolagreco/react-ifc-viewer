@@ -1,6 +1,3 @@
- 
- 
-
 const isRunningInBrowser = () => {
 	if (typeof window === 'undefined') {
 		return false

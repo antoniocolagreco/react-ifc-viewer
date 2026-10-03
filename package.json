@@ -19,8 +19,7 @@
 			"types": "./dist/index.d.ts",
 			"import": "./dist/index.js",
 			"require": "./dist/index.cjs"
-		},
-		"./css": "./dist/index.css"
+		}
 	},
 	"repository": {
 		"type": "git",
@@ -90,8 +89,8 @@
 	"peerDependencies": {
 		"react": "^19.0.0",
 		"react-dom": "^19.0.0",
-		"three": "^0.175.0",
-		"web-ifc": "^0.0.66"
+		"three": ">=0.175.0",
+		"web-ifc": ">=0.0.66"
 	},
 	"packageManager": "pnpm@9.14.4+sha512.c8180b3fbe4e4bca02c94234717896b5529740a6cbadf19fa78254270403ea2f27d4e1d46a08a0f56c89b63dc8ebfd3ee53326da720273794e6200fcf0d184ab",
 	"dependencies": {
